@@ -1,0 +1,2753 @@
+  @keyframes mapRegionGlow {
+    0%, 100% { filter: drop-shadow(0 0 0px rgba(123, 188, 51, 0.4)); }
+    50% { filter: drop-shadow(0 0 12px rgba(123, 188, 51, 0.7)); }
+  }
+  
+  .jvectormap-region:hover {
+    filter: drop-shadow(0 0 8px rgba(123, 188, 51, 0.6)) !important;
+    transition: filter 0.2s ease;
+  }
+  
+  .jvectormap-region.selected-region {
+    animation: mapRegionGlow 2s ease-in-out 6;
+  }
+  
+  .learns-map-panel {
+    will-change: auto;
+  }
+  
+  .learns-map-panel.show {
+    will-change: opacity, transform;
+    animation: slideInPanel 0.36s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  @keyframes slideInPanel {
+    from { opacity: 0; transform: translateY(10px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  
+  .learns-map-region{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#6a8455;font-weight:700;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexi — Speak the World</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
+<style>
+  :root {
+    --black:#111111;--green:#3B6D11;--green-dark:#27500A;--green-light:#EAF3DE;
+    --green-mid:#C0DD97;--white:#ffffff;--gray:#f6f6f3;--gray-text:#888;--border:#e8e8e4;
+    --flow-line-base:linear-gradient(180deg,rgba(123,188,51,0.12),rgba(95,157,34,0.36),rgba(59,109,17,0.25));
+    --flow-line-active:linear-gradient(180deg,#f4ffe0 0%,#bde777 26%,#7bbc33 72%,#3B6D11 100%);
+    --flow-line-glow:0 0 0 1px rgba(123,188,51,0.08),0 0 16px rgba(123,188,51,0.18);
+    --flow-bubble-bg:radial-gradient(circle at 35% 35%,#f8ffe8 0%,#e0f5ba 38%,#8bcf3c 78%,#3B6D11 100%);
+    --flow-bubble-shadow:0 0 0 6px rgba(123,188,51,0.08),0 0 22px rgba(123,188,51,0.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:var(--black);overflow-x:hidden;min-height:100vh;}
+  #bgOverlay{display:none;}
+  nav,main,footer{position:relative;z-index:1;}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(255,255,255,0.93);backdrop-filter:blur(12px);border-bottom:0.5px solid var(--border);}
+  .nav-logo{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--black);letter-spacing:-0.03em;}
+  .nav-logo span{color:var(--green);}
+  .nav-right{display:flex;align-items:center;gap:14px;}
+  .animated-button{position:relative;display:flex;align-items:center;gap:4px;padding:12px 28px;border:4px solid;border-color:transparent;font-size:14px;background-color:inherit;border-radius:100px;font-weight:600;color:#2d5f12;box-shadow:0 0 0 2px #2d5f12;cursor:pointer;overflow:hidden;transition:all 0.6s cubic-bezier(0.23,1,0.32,1);transform-origin:center center;}
+  .animated-button svg{position:absolute;width:20px;fill:#2d5f12;z-index:9;transition:all 0.8s cubic-bezier(0.23,1,0.32,1);}
+  .animated-button .arr-1{right:14px;}.animated-button .arr-2{left:-25%;}
+  .animated-button .circle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;background-color:#e4f3c7;border-radius:50%;opacity:0;transition:all 0.8s cubic-bezier(0.23,1,0.32,1);}
+  .animated-button .text{position:relative;z-index:1;transform:translateX(-12px);transition:all 0.8s cubic-bezier(0.23,1,0.32,1);white-space:nowrap;}
+  .animated-button:hover{box-shadow:0 0 0 12px transparent;color:#17320b;border-radius:12px;}
+  .animated-button:hover .arr-1{right:-25%;}.animated-button:hover .arr-2{left:16px;}
+  .animated-button:hover .text{transform:translateX(12px);}
+  .animated-button:hover svg{fill:#0f172a;}
+  .animated-button:hover .circle{width:220px;height:220px;opacity:1;}
+
+  .page-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:120;width:42px;height:42px;border-radius:50%;border:1px solid #d6ddca;background:rgba(234,243,222,0.9);color:var(--green-dark);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.18s,background 0.18s;}
+  .page-arrow:hover{transform:translateY(-50%) scale(1.06);background:var(--green-light);border-color:var(--green-mid);}
+  .page-arrow.disabled{opacity:0.38;pointer-events:none;}
+  .page-arrow.left{left:18px;}.page-arrow.right{right:18px;}
+  .page-arrow svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+  .page{display:none;}
+  .page.active{display:block;}
+
+  #homePage{background:transparent;min-height:100vh;}
+
+  /* HERO */
+  .ad-hero{max-width:1420px;margin:0 auto;padding:84px 16px 20px;}
+  .ad-board{background:transparent;border-radius:0;min-height:760px;padding:12px 0 10px;position:relative;overflow:visible;box-shadow:none;}
+  .ad-brand{font-size:58px;font-weight:700;letter-spacing:0.01em;color:#d9f1da;font-family:'DM Sans',sans-serif;text-align:center;line-height:1;margin-top:6px;}
+  .ad-title{font-family:'Fraunces',serif;font-size:clamp(44px,5vw,72px);font-weight:300;text-align:center;color:#f8fff4;line-height:1.05;letter-spacing:-0.02em;margin:24px 0 26px;}
+  .card-stack{position:relative;height:610px;max-width:1320px;margin:0 auto;}
+  .stack-card{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border-radius:16px;box-shadow:0 24px 44px rgba(9,24,16,0.34);}
+  .card-back{width:93%;height:90%;top:68px;}
+  .card-back.left{transform:translateX(-56%) translateY(10px);opacity:0.92;}
+  .card-back.right{transform:translateX(-44%) translateY(0);opacity:0.95;}
+  .card-front{width:100%;height:100%;top:0;overflow:hidden;transform-origin:center center;backface-visibility:hidden;transform:translateZ(0);transition:transform 0.3s ease;z-index:4;}
+  .card-front.is-animating{will-change:transform,border-radius,box-shadow;}
+  .card-front:hover{transform:scale(1.02);}
+  .front-panel{display:grid;grid-template-columns:1fr 1fr;column-gap:clamp(24px,3.5vw,64px);height:100%;}
+  .front-copy{padding:56px 50px 40px 20px;display:flex;flex-direction:column;justify-content:flex-start;}
+  .front-copy h2{font-size:78px;line-height:0.93;letter-spacing:-0.03em;color:#213629;margin-bottom:18px;font-weight:700;}
+  .front-copy p{font-size:17px;color:#567061;line-height:1.55;max-width:410px;margin-bottom:30px;}
+  .front-actions{display:flex;align-items:center;gap:10px;}
+  .hero-title,.hero-sub,.hero-button{opacity:0;transform:translateY(30px);animation:fadeUp 0.8s ease forwards;}
+  .hero-title{animation-delay:0.2s;}
+  .hero-sub{animation-delay:0.4s;}
+  .hero-button{animation-delay:0.6s;}
+  .front-actions input{height:46px;border-radius:999px;border:1px solid #e4e4e4;padding:0 16px;font-size:14px;min-width:200px;outline:none;}
+  .front-actions button{height:46px;border:none;border-radius:999px;background:#54aa2d;color:#fff;padding:0 28px;font-size:14px;font-weight:700;cursor:pointer;}
+  .front-visual{position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(165deg,#edf6e1 0%,#ddebcf 100%);padding:30px;overflow:hidden;}
+  .front-visual::before{content:'';position:absolute;inset:24px;border-radius:18px;background:linear-gradient(145deg,#d7b08a,#c28f62);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.2),inset 0 -20px 30px rgba(86,55,27,0.22);}
+  .desk-scene{position:relative;z-index:2;width:min(92%,470px);aspect-ratio:1.12/1;transform:rotate(-1.5deg);}
+  .desk-book{position:absolute;right:14px;top:28px;width:170px;height:230px;border-radius:14px;background:linear-gradient(160deg,#3f6320,#2f4d18);box-shadow:0 20px 32px rgba(20,45,8,0.34);padding:18px 16px;}
+  .desk-book::before{content:'French Essentials';display:block;font-family:'Fraunces',serif;font-size:20px;line-height:1.1;color:#eff9e0;letter-spacing:-0.01em;}
+  .desk-book::after{content:'Unit 4 • Daily Dialogue';position:absolute;left:16px;bottom:16px;font-size:11px;letter-spacing:0.08em;color:#d4e7bc;text-transform:uppercase;}
+  .desk-notebook{position:absolute;left:12px;bottom:20px;width:280px;height:220px;border-radius:12px;background:#fffef9;box-shadow:0 20px 34px rgba(33,54,41,0.22);border:1px solid #ecdccf;transform:rotate(-4deg);padding:22px 24px 20px 34px;}
+  .desk-notebook::before{content:'';position:absolute;left:16px;top:16px;bottom:16px;width:2px;background:#e4c5b2;}
+  .desk-notebook::after{content:'';position:absolute;left:32px;right:20px;top:58px;height:1px;background:#dde7f0;box-shadow:0 28px 0 #dde7f0,0 56px 0 #dde7f0,0 84px 0 #dde7f0;}
+  .desk-note-title{font-family:'Fraunces',serif;font-size:26px;line-height:1;color:#1f3323;letter-spacing:-0.01em;}
+  .desk-note-sub{margin-top:10px;font-size:12px;color:#5f6f60;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;}
+  .desk-handwrite{display:flex;flex-direction:column;gap:8px;margin-top:14px;position:relative;z-index:2;font-family:'Fraunces',serif;color:#2f4d18;}
+  .desk-write-word{display:inline-block;white-space:nowrap;overflow:hidden;width:0;max-width:100%;font-size:14px;line-height:1.25;letter-spacing:0.01em;opacity:0.96;border-right:1.5px solid rgba(47,77,24,0.7);animation:deskWriteWord 1.05s steps(26,end) forwards,deskCaret 0.42s step-end 8;}
+  .desk-write-word.w1{animation-delay:0.35s,0.35s;}
+  .desk-write-word.w2{animation-delay:1.15s,1.15s;}
+  .desk-write-word.w3{animation-delay:1.95s,1.95s;}
+  @keyframes deskWriteWord{from{width:0;}to{width:100%;}}
+  @keyframes deskCaret{50%{border-right-color:transparent;}}
+  .desk-pen{position:absolute;left:230px;top:24px;width:14px;height:220px;border-radius:999px;background:linear-gradient(180deg,#2a3f1d 0%,#45652c 56%,#c6a261 56%,#8e7042 100%);box-shadow:0 12px 20px rgba(20,45,8,0.22);transform:rotate(22deg);}
+  .desk-sticky{position:absolute;right:0;bottom:26px;width:126px;height:108px;border-radius:8px;background:linear-gradient(180deg,#fff4a8,#f5db62);box-shadow:0 12px 20px rgba(70,58,11,0.2);transform:rotate(6deg);padding:14px 12px;font-size:12px;line-height:1.45;color:#4f420f;font-weight:600;}
+  .hero-hello-layer{position:absolute;inset:0;z-index:6;pointer-events:none;}
+  .hero-hello-bubble{position:absolute;background:linear-gradient(180deg,#f8fcf4,#edf7e1);border:1.5px solid #9fc96a;border-radius:14px;padding:8px 11px 7px;box-shadow:0 0 0 2px rgba(95,157,34,0.08),0 10px 20px rgba(20,45,8,0.16);font-weight:700;font-size:12px;line-height:1;color:#24420d;opacity:0;transform:translateY(8px) scale(0.88);transition:opacity 0.26s ease,transform 0.3s cubic-bezier(0.22,1,0.36,1);}
+  .hero-hello-bubble::after{content:'';position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #9fc96a;}
+  .hero-hello-bubble::before{content:'';position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #f2f9e7;z-index:1;}
+  .hero-hello-bubble:nth-child(odd){background:linear-gradient(180deg,#f5fbef,#eaf6db);}
+  .hero-hello-bubble.b1{top:20px;left:18px;transform:translateY(8px) scale(0.88) rotate(-5deg);}
+  .hero-hello-bubble.b2{top:28px;right:22px;transform:translateY(8px) scale(0.88) rotate(4deg);}
+  .hero-hello-bubble.b3{top:106px;left:40%;transform:translate(-50%,8px) scale(0.88) rotate(-2deg);}
+  .hero-hello-bubble.b4{bottom:26px;left:12px;transform:translateY(8px) scale(0.88) rotate(3deg);}
+  .hero-hello-bubble.b5{bottom:18px;right:18px;transform:translateY(8px) scale(0.88) rotate(-4deg);}
+  .hero-hello-bubble.b6{top:70px;left:6px;transform:translateY(8px) scale(0.88) rotate(-3deg);}
+  .hero-hello-bubble.b7{top:76px;right:8px;transform:translateY(8px) scale(0.88) rotate(5deg);}
+  .hero-hello-bubble.b8{bottom:68px;left:34%;transform:translateY(8px) scale(0.88) rotate(-2deg);}
+  .hero-hello-bubble.b9{bottom:62px;right:34%;transform:translateY(8px) scale(0.88) rotate(2deg);}
+  .card-front:hover .hero-hello-bubble,
+  .card-front:focus-within .hero-hello-bubble{opacity:1;transform:translateY(0) scale(1) rotate(0deg);}
+  .card-front:hover .hero-hello-bubble.b1,.card-front:focus-within .hero-hello-bubble.b1{transition-delay:0.02s;}
+  .card-front:hover .hero-hello-bubble.b2,.card-front:focus-within .hero-hello-bubble.b2{transition-delay:0.08s;}
+  .card-front:hover .hero-hello-bubble.b3,.card-front:focus-within .hero-hello-bubble.b3{transition-delay:0.14s;}
+  .card-front:hover .hero-hello-bubble.b4,.card-front:focus-within .hero-hello-bubble.b4{transition-delay:0.2s;}
+  .card-front:hover .hero-hello-bubble.b5,.card-front:focus-within .hero-hello-bubble.b5{transition-delay:0.26s;}
+  .card-front:hover .hero-hello-bubble.b6,.card-front:focus-within .hero-hello-bubble.b6{transition-delay:0.32s;}
+  .card-front:hover .hero-hello-bubble.b7,.card-front:focus-within .hero-hello-bubble.b7{transition-delay:0.38s;}
+  .card-front:hover .hero-hello-bubble.b8,.card-front:focus-within .hero-hello-bubble.b8{transition-delay:0.44s;}
+  .card-front:hover .hero-hello-bubble.b9,.card-front:focus-within .hero-hello-bubble.b9{transition-delay:0.5s;}
+  .hero-process-connector{position:relative;width:4px;height:320px;margin:0 auto -44px;background:var(--flow-line-base);border-radius:999px;box-shadow:var(--flow-line-glow);}
+  .hero-process-connector::before,.hero-process-connector::after{content:'';position:absolute;left:50%;transform:translateX(-50%);width:12px;height:12px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);}
+  .hero-process-connector::before{top:-6px;}
+  .hero-process-connector::after{bottom:-6px;}
+  .hero-process-progress{position:absolute;left:0;top:-6px;width:100%;height:calc(100% + 12px);background:var(--flow-line-active);border-radius:999px;box-shadow:0 0 14px rgba(123,188,51,0.2);transform-origin:top center;transform:scaleY(0);}
+
+  /* After intro animation, flatten hero container into the page background. */
+  body.hero-flat #homePage{background:#fff;}
+  body.hero-flat .ad-hero{padding-bottom:0;}
+  body.hero-flat .ad-board{min-height:auto;padding:0;}
+  body.hero-flat .card-stack{height:auto;max-width:1320px;}
+  body.hero-flat .card-back{display:none;}
+  body.hero-flat .card-front{
+    position:relative;
+    left:auto;
+    top:auto;
+    width:100%;
+    height:auto;
+    transform:none;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    background:#fff;
+  }
+  body.hero-flat .front-panel{min-height:620px;}
+
+  .animated-button.grow-late{transform:scale(1.14);}
+
+  /* ===== LAPTOP ===== */
+  .laptop-scene{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;perspective:1600px;}
+  .laptop-3d{transform-style:preserve-3d;transform:rotateY(-20deg) rotateX(5deg);animation:laptopFloat 7s ease-in-out 6;width:100%;max-width:500px;}
+  @keyframes laptopFloat{0%,100%{transform:rotateY(-20deg) rotateX(5deg) translateY(0px);}50%{transform:rotateY(-16deg) rotateX(3deg) translateY(-14px);}}
+
+  .laptop-lid{position:relative;background:linear-gradient(160deg,#2e2e2e,#1a1a1a);border-radius:18px 18px 0 0;padding:12px 12px 0;box-shadow:0 0 0 1px #444,-10px -10px 50px rgba(0,0,0,0.4),0 -2px 0 0 rgba(255,255,255,0.07) inset;}
+  .laptop-lid::before{content:'';position:absolute;top:7px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:#2a2a2a;border:1px solid #555;}
+  .laptop-bezel{background:#111;border-radius:10px 10px 0 0;overflow:hidden;}
+  .laptop-screen{width:100%;aspect-ratio:16/10;background:#0d1117;border-radius:8px 8px 0 0;overflow:hidden;}
+
+  /* Screen UI */
+  .lexi-screen-ui{width:100%;height:100%;background:linear-gradient(135deg,#f8fdf4,#edf7e0);display:flex;flex-direction:column;font-size:10px;overflow:hidden;position:relative;}
+  .lx-nav{background:rgba(255,255,255,0.97);border-bottom:1px solid #dceac8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .lx-nav-logo{font-family:'Fraunces',serif;font-weight:700;font-size:12px;color:#111;}
+  .lx-nav-logo span{color:#3B6D11;}
+  .lx-nav-badge{background:#EAF3DE;color:#3B6D11;border-radius:10px;padding:2px 8px;font-size:8px;font-weight:700;letter-spacing:0.02em;}
+  .lx-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:7px;overflow:hidden;}
+  .lx-greeting{color:#aaa;font-size:8px;}
+  .lx-title{font-family:'Fraunces',serif;font-size:13px;font-weight:400;color:#111;line-height:1.25;}
+  .lx-title em{color:#3B6D11;font-style:italic;}
+
+  /* Chat view */
+  .lx-chat-bubble{background:#3B6D11;color:white;border-radius:10px 10px 10px 2px;padding:6px 9px;font-size:8px;align-self:flex-start;max-width:78%;line-height:1.45;margin-top:2px;opacity:0;transform:translateY(6px);transition:opacity 0.4s ease,transform 0.4s ease;}
+  .lx-chat-bubble.user{background:#EAF3DE;color:#27500A;border-radius:10px 10px 2px 10px;align-self:flex-end;}
+  .lx-chat-bubble.show{opacity:1;transform:translateY(0);}
+
+  /* Steps view */
+  .lx-steps-wrap{position:relative;display:flex;flex-direction:column;gap:4px;padding-left:18px;}
+  .lx-steps-track{position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:#dceac8;border-radius:99px;}
+  .lx-steps-fill{position:absolute;left:6px;top:4px;width:2px;height:0;background:linear-gradient(180deg,#5f9d22,#3B6D11);border-radius:99px;transition:height 0.6s ease;}
+  .lx-step-mini{background:white;border:1px solid #e8e8e4;border-radius:7px;padding:6px 8px;position:relative;opacity:0.4;transform:translateX(5px);transition:opacity 0.4s ease,transform 0.4s ease,border-color 0.3s,box-shadow 0.3s;}
+  .lx-step-mini::before{content:'';position:absolute;left:-14px;top:9px;width:7px;height:7px;border-radius:50%;background:#3B6D11;border:2px solid #eaf3de;transform:scale(0.6);transition:transform 0.4s;}
+  .lx-step-mini.active{opacity:1;transform:translateX(0);border-color:#C0DD97;box-shadow:0 0 0 2px rgba(59,109,17,0.08),0 3px 10px rgba(59,109,17,0.1);}
+  .lx-step-mini.active::before{transform:scale(1);}
+  .lx-step-mini.done{opacity:0.9;transform:translateX(0);}
+  .lx-step-mini.done::before{background:#5f9d22;transform:scale(0.8);}
+  .lx-step-label{font-size:8.5px;font-weight:600;color:#111;}
+  .lx-step-sub{font-size:7px;color:#888;line-height:1.4;margin-top:1px;}
+
+  .lx-progress-bar{height:3px;background:#e0edd0;border-radius:99px;overflow:hidden;flex-shrink:0;margin:auto 0 0;}
+  .lx-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#3B6D11,#7bbc33);transition:width 1s ease;border-radius:99px;}
+  .lx-bottom{padding:6px 12px 8px;background:rgba(255,255,255,0.85);flex-shrink:0;}
+  .lx-btn{background:#3B6D11;color:white;border:none;border-radius:99px;padding:5px 12px;font-size:8px;font-weight:600;width:100%;cursor:pointer;}
+
+  /* Laptop base + keyboard */
+  .laptop-hinge{height:5px;background:linear-gradient(180deg,#1e1e1e,#252525);position:relative;}
+  .laptop-hinge::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40%;height:2px;background:rgba(255,255,255,0.03);}
+  .laptop-base-wrap{background:linear-gradient(180deg,#242424,#1c1c1c);border-radius:0 0 18px 18px;padding:10px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 1px 0 rgba(255,255,255,0.04) inset;}
+  .keyboard-rows{display:flex;flex-direction:column;gap:3px;}
+  .kb-row{display:flex;gap:2.5px;justify-content:center;}
+  .kb-key{background:#2e2e2e;border-radius:3px;height:8px;flex:1;max-width:15px;box-shadow:0 2px 0 #111,0 0 0 0.5px rgba(255,255,255,0.04) inset;transition:background 0.1s,box-shadow 0.1s;}
+  .kb-key.wide{max-width:26px;}.kb-key.xwide{max-width:80px;}
+  .kb-key.glow{background:#3B6D11;box-shadow:0 1px 0 #1a3808,0 0 8px rgba(59,109,17,0.6);}
+  .laptop-trackpad{width:55px;height:14px;background:#272727;border-radius:5px;margin:5px auto 0;border:0.5px solid rgba(255,255,255,0.04);}
+  .laptop-foot{width:75%;height:12px;background:radial-gradient(ellipse,rgba(0,0,0,0.28),transparent 70%);margin:0 auto;filter:blur(10px);}
+
+  /* STATS */
+  .stats-bar{display:flex;justify-content:center;gap:16px;padding:14px 64px 52px;max-width:1220px;margin:0 auto;flex-wrap:wrap;}
+  .stat{text-align:center;background:#fff;padding:22px 26px;border-radius:18px;min-width:190px;box-shadow:0 8px 24px rgba(20,45,8,0.2);}
+  .stat-num{font-family:'Fraunces',serif;font-size:36px;font-weight:400;color:#22490d;letter-spacing:-0.03em;}
+  .stat-label{font-size:12px;color:#74836a;margin-top:2px;}
+
+  .contact-block{max-width:1220px;margin:0 auto;padding:16px 64px 86px;}
+  .contact-panel{background:#fff;border-radius:28px;padding:36px 34px;display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:0 22px 44px rgba(18,39,7,0.25);flex-wrap:wrap;}
+  .contact-text h3{font-family:'Fraunces',serif;font-size:42px;line-height:1;color:#18350a;margin-bottom:10px;letter-spacing:-0.02em;}
+  .contact-text p{font-size:15px;color:#66755c;max-width:540px;line-height:1.6;}
+
+  /* SECTIONS */
+  section{padding:100px 48px;}
+  .tag{font-size:11px;font-weight:500;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;}
+  .stitle{font-family:'Fraunces',serif;font-size:clamp(34px,4vw,52px);font-weight:300;line-height:1.1;letter-spacing:-0.02em;margin-bottom:20px;}
+  .stitle em{font-style:italic;color:var(--green);}
+  .ssub{font-size:16px;font-weight:300;color:#666;line-height:1.7;max-width:460px;}
+
+  /* HOW IT WORKS */
+  #how{padding-top:56px;}
+  .steps{position:relative;display:flex;flex-direction:column;gap:10px;max-width:880px;margin:28px auto 0;padding-left:46px;}
+  .steps::before{content:'';position:absolute;left:15px;top:8px;bottom:8px;width:4px;background:var(--flow-line-base);border-radius:999px;box-shadow:var(--flow-line-glow);}
+  .steps-fill{position:absolute;left:15px;top:8px;width:4px;height:0;background:var(--flow-line-active);border-radius:999px;box-shadow:0 0 14px rgba(123,188,51,0.2);}
+  .step{position:relative;background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px 18px 18px 16px;opacity:0.45;transition:opacity 0.5s,border-color 0.4s,box-shadow 0.4s;}
+  .step::before{content:'';position:absolute;left:-38px;top:24px;width:12px;height:12px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);z-index:2;}
+  .step::after{content:'';position:absolute;left:-26px;top:29px;width:26px;height:2px;background:#dceac8;border-radius:999px;transform:scaleX(0);transform-origin:left center;transition:transform 0.42s cubic-bezier(0.22,1,0.36,1),background 0.35s ease,box-shadow 0.35s ease;z-index:1;}
+  .step.done::after{transform:scaleX(1);background:#dceac8;}
+  .step.active::after{transform:scaleX(1);background:linear-gradient(90deg,#5f9d22,#3B6D11);box-shadow:0 0 8px rgba(95,157,34,0.5);}
+  .step.active{opacity:1;border-color:#C0DD97;box-shadow:0 0 0 4px rgba(59,109,17,0.07),0 8px 30px rgba(59,109,17,0.12);}
+  .step.done{opacity:0.8;}
+  .step-num{font-size:12px;font-weight:600;color:var(--green-dark);letter-spacing:.02em;margin-bottom:8px;}
+  .step-title{font-size:20px;font-weight:500;color:var(--black);margin-bottom:7px;}
+  .step-desc{font-size:14px;font-weight:300;color:#666;line-height:1.65;}
+
+  /* FEATURES */
+  .feat-section{background:linear-gradient(180deg,#f6f8f2,#eff6e8);overflow:visible;}
+  .feat-shell{max-width:1440px;margin:54px auto 0;}
+  .feat-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:#fff;border:1px solid var(--green-mid);color:var(--green-dark);font-size:12px;font-weight:600;letter-spacing:.02em;box-shadow:0 8px 24px rgba(59,109,17,0.08);}
+  .feat-kicker::before{content:'●';font-size:8px;color:var(--green);}
+  .feat-sub{font-size:16px;font-weight:300;color:#66755c;line-height:1.7;max-width:650px;margin-top:14px;}
+  .feature-story{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,540px);gap:44px;margin-top:30px;align-items:start;position:relative;}
+  .feature-list{display:flex;flex-direction:column;gap:0;padding-bottom:36vh;position:relative;z-index:1;}
+  .feature-item{min-height:86vh;display:flex;align-items:center;opacity:0.28;transform:translateX(-24px);transition:opacity 0.45s ease,transform 0.45s ease;}
+  .feature-item.active{opacity:1;transform:translateX(0);}
+  .feature-item-inner{max-width:660px;padding-right:12px;}
+  .feature-item .feat-label{font-size:12px;letter-spacing:.11em;margin-bottom:16px;}
+  .feature-item .feat-title{font-size:clamp(44px,5.5vw,72px);line-height:0.98;letter-spacing:-0.03em;margin-bottom:18px;max-width:9ch;}
+  .feature-item .feat-desc{font-size:29px;line-height:1.22;max-width:18ch;color:#2f3a29;}
+  .feature-sticky{position:sticky;top:92px;align-self:start;height:calc(100vh - 120px);display:flex;align-items:center;z-index:1;}
+  .feature-bridge-line{position:absolute;top:14px;bottom:14px;left:50%;width:4px;background:var(--flow-line-base);border-radius:999px;transform:translateX(-50%);pointer-events:none;z-index:0;box-shadow:var(--flow-line-glow);}
+  .feature-bridge-line::before,.feature-bridge-line::after{content:'';position:absolute;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);}
+  .feature-bridge-line::before{top:-5px;}
+  .feature-bridge-line::after{bottom:-5px;}
+  .feature-bridge-fill{position:absolute;left:0;top:0;width:100%;height:0;background:var(--flow-line-active);border-radius:999px;box-shadow:0 0 14px rgba(123,188,51,0.2);}
+  .feature-bridge-markers{position:absolute;inset:0;pointer-events:none;}
+  .feature-bridge-marker{position:absolute;left:50%;width:12px;height:12px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);transform:translate(-50%,-50%) scale(0.82);transition:transform 0.28s,box-shadow 0.28s,opacity 0.28s;opacity:0.72;}
+  .feature-bridge-marker.active{transform:translate(-50%,-50%) scale(1);box-shadow:0 0 0 7px rgba(123,188,51,0.12),0 0 24px rgba(123,188,51,0.3);opacity:1;}
+  .feature-bridge-marker.done{transform:translate(-50%,-50%) scale(0.9);box-shadow:0 0 0 5px rgba(123,188,51,0.1),0 0 18px rgba(123,188,51,0.2);opacity:0.92;}
+  .feature-stage{position:relative;width:100%;height:min(78vh,540px);background:linear-gradient(180deg,#f3fbe9,#e7f2d9);border-radius:30px;border:1px solid rgba(192,221,151,0.85);box-shadow:0 24px 54px rgba(20,45,8,0.14);padding:24px;overflow:hidden;}
+  .feature-scene{position:absolute;inset:24px;opacity:0;transform:translateY(14px) scale(0.98);pointer-events:none;transition:opacity 0.45s ease,transform 0.45s ease;display:flex;align-items:center;justify-content:center;will-change:opacity,transform;backface-visibility:hidden;}
+  .feature-scene.active{opacity:1;transform:translateY(0) scale(1);}
+  .feat-spotlight{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding:30px 0 20px;overflow:visible;}
+  .feat-card{min-height:420px;background:linear-gradient(180deg,#fff, #fbfdf7);border:1px solid rgba(192,221,151,0.8);border-radius:30px;box-shadow:0 20px 50px rgba(20,45,8,0.12);padding:28px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,0.9fr);gap:28px;position:relative;overflow:hidden;}
+  .feat-card::after{content:'';position:absolute;inset:auto -10% -35% auto;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(95,157,34,0.14),transparent 70%);pointer-events:none;}
+  .feat-copy{display:flex;flex-direction:column;justify-content:space-between;gap:18px;}
+  .feat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .feat-label{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;}
+  .feat-title{font-family:'Fraunces',serif;font-size:clamp(28px,3vw,46px);line-height:1.02;font-weight:300;letter-spacing:-0.03em;color:var(--black);margin:0 0 12px;}
+  .feat-desc{font-size:15px;font-weight:300;color:#66755c;line-height:1.7;max-width:520px;}
+  .swap-word{display:inline-block;min-width:9.5ch;transition:opacity 0.35s ease,transform 0.35s ease;}
+  .swap-word.changing{opacity:0;transform:translateY(-0.18em);}
+  .feat-chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .feat-chip{padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--green-mid);color:var(--green-dark);font-size:11px;font-weight:600;}
+  .feat-media{background:linear-gradient(160deg,#f5fcf2,#eaf4dc);border-radius:24px;border:1px solid rgba(192,221,151,0.85);padding:18px;display:flex;align-items:center;justify-content:center;min-height:100%;position:relative;overflow:hidden;}
+  .feat-ui{width:100%;height:100%;min-height:344px;display:flex;align-items:center;justify-content:center;position:relative;}
+
+  /* ====== FEATURE SCENE ANIMATIONS ====== */
+
+  /* — AI Learning Core — */
+  .ai-window{width:100%;max-width:420px;background:#fff;border-radius:18px;border:1px solid #dceac8;box-shadow:0 18px 44px rgba(20,45,8,0.12);overflow:hidden;}
+  .ai-window-top{height:42px;background:linear-gradient(180deg,#fff,#f5faf0);border-bottom:1px solid #e7efdb;display:flex;align-items:center;gap:6px;padding:0 14px;}
+  .ai-dot{width:10px;height:10px;border-radius:50%;background:#d7e3c4;}
+  .ai-chat{padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .ai-bubble{max-width:84%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.45;opacity:0;transform:translateY(8px);}
+  .ai-bubble.user{background:#eef6e4;color:#24420d;border-top-right-radius:4px;align-self:flex-end;animation:bubble-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards;}
+  .ai-bubble.ai{background:#3B6D11;color:#fff;border-top-left-radius:4px;align-self:flex-start;animation:bubble-in 0.45s cubic-bezier(0.22,1,0.36,1) forwards;}
+  .ai-bubble:nth-child(1){animation-delay:0.2s;}
+  .ai-bubble:nth-child(2){animation-delay:0.8s;}
+  .ai-bubble:nth-child(3){animation-delay:1.6s;}
+  .ai-bubble:nth-child(4){animation-delay:2.4s;}
+  @keyframes bubble-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .ai-highlight{display:inline-block;background:linear-gradient(120deg,rgba(235,90,90,0.22),rgba(95,157,34,0.25));padding:0 5px;border-radius:6px;animation:highlight-flash 2s ease-in-out 2.8s infinite;}
+  @keyframes highlight-flash{0%,100%{background:linear-gradient(120deg,rgba(235,90,90,0.22),rgba(95,157,34,0.25))}50%{background:linear-gradient(120deg,rgba(235,90,90,0.05),rgba(95,157,34,0.08))}}
+  .typing{display:inline-flex;gap:4px;align-items:center;}
+  .typing span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.9);animation:typing-dot 1.2s ease-in-out infinite;}
+  .typing span:nth-child(1){animation-delay:0s;}
+  .typing span:nth-child(2){animation-delay:0.2s;}
+  .typing span:nth-child(3){animation-delay:0.4s;}
+  @keyframes typing-dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+  .difficulty-slider{margin-top:8px;height:10px;background:#e7f0da;border-radius:999px;position:relative;overflow:hidden;}
+  .difficulty-knob{position:absolute;top:50%;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #3B6D11;transform:translate(-50%,-50%);box-shadow:0 6px 14px rgba(20,45,8,0.14);animation:knob-slide 3s cubic-bezier(0.22,1,0.36,1) 3.2s infinite alternate;}
+  .difficulty-fill{position:absolute;inset:0;width:52%;background:linear-gradient(90deg,#3B6D11,#7bbc33);border-radius:999px;animation:fill-slide 3s cubic-bezier(0.22,1,0.36,1) 3.2s infinite alternate;}
+  @keyframes knob-slide{from{left:52%}to{left:78%}}
+  @keyframes fill-slide{from{width:52%}to{width:78%}}
+
+  /* — Speaking & Communication — */
+  .mic-stage{width:100%;max-width:420px;height:344px;border-radius:24px;background:linear-gradient(180deg,#f9fcf4,#e9f4de);border:1px solid #dceac8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+  .mic-button{width:104px;height:104px;border-radius:50%;background:linear-gradient(180deg,#3B6D11,#5f9d22);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;animation:mic-pulse-btn 2s ease-in-out infinite;}
+  @keyframes mic-pulse-btn{0%,100%{box-shadow:0 0 0 0 rgba(59,109,17,0.35),0 12px 30px rgba(20,45,8,0.28)}50%{box-shadow:0 0 0 18px rgba(59,109,17,0),0 12px 30px rgba(20,45,8,0.28)}}
+  .mic-button svg{width:42px;height:42px;stroke:#fff;fill:none;stroke-width:2;}
+  .mic-ripple{position:absolute;width:104px;height:104px;border-radius:50%;border:2px solid rgba(59,109,17,0.25);animation:mic-ripple-out 2s ease-out infinite;}
+  .mic-ripple:nth-child(2){animation-delay:0.66s;}
+  .mic-ripple:nth-child(3){animation-delay:1.33s;}
+  @keyframes mic-ripple-out{0%{transform:scale(1);opacity:0.7}100%{transform:scale(2.8);opacity:0}}
+  .voice-wave{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);display:flex;gap:5px;align-items:flex-end;height:70px;}
+  .voice-wave span{width:8px;border-radius:999px;background:linear-gradient(180deg,#7bbc33,#3B6D11);animation:wave-dance 1s ease-in-out infinite alternate;}
+  .voice-wave span:nth-child(1){animation-delay:0s;animation-duration:0.9s;}
+  .voice-wave span:nth-child(2){animation-delay:0.12s;animation-duration:0.7s;}
+  .voice-wave span:nth-child(3){animation-delay:0.24s;animation-duration:0.55s;}
+  .voice-wave span:nth-child(4){animation-delay:0.08s;animation-duration:0.8s;}
+  .voice-wave span:nth-child(5){animation-delay:0.18s;animation-duration:0.65s;}
+  @keyframes wave-dance{from{height:12px;opacity:0.4}to{height:62px;opacity:1}}
+  .mic-score{position:absolute;top:22px;right:24px;background:#fff;border-radius:12px;border:1px solid #dceac8;padding:8px 14px;font-size:12px;font-weight:700;color:#3B6D11;box-shadow:0 8px 20px rgba(20,45,8,0.12);animation:score-pop 0.6s cubic-bezier(0.22,1,0.36,1) 1s both;}
+  @keyframes score-pop{from{opacity:0;transform:scale(0.7) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .mic-feedback{position:absolute;top:22px;left:20px;background:#3B6D11;border-radius:12px;padding:7px 12px;font-size:11px;color:#fff;font-weight:600;animation:score-pop 0.6s cubic-bezier(0.22,1,0.36,1) 1.4s both;}
+
+  /* — Real-Life Practice — */
+  .scene-card{width:100%;max-width:420px;height:344px;border-radius:24px;border:1px solid #dceac8;background:linear-gradient(180deg,#f8fbf2,#ecf5e1);overflow:hidden;position:relative;}
+  .scene-top{height:54px;padding:0 18px;background:rgba(255,255,255,0.75);border-bottom:1px solid #e5edd8;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#517044;}
+  .scene-tag{padding:5px 10px;border-radius:999px;background:#fff;border:1px solid #dceac8;font-size:11px;font-weight:600;color:#3B6D11;}
+  .scene-body{padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .scene-msg{max-width:86%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.45;opacity:0;transform:translateX(-10px);}
+  .scene-msg.user{align-self:flex-start;background:#fff;border:1px solid #dceac8;animation:msg-slide-right 0.4s cubic-bezier(0.22,1,0.36,1) forwards;}
+  .scene-msg.ai{align-self:flex-end;background:#3B6D11;color:#fff;transform:translateX(10px);animation:msg-slide-left 0.4s cubic-bezier(0.22,1,0.36,1) forwards;}
+  .scene-msg:nth-child(1){animation-delay:0.3s;}
+  .scene-msg:nth-child(2){animation-delay:1.1s;}
+  .scene-msg:nth-child(3){animation-delay:2s;}
+  .scene-msg:nth-child(4){animation-delay:2.9s;}
+  @keyframes msg-slide-right{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes msg-slide-left{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+  .scene-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);border:1px solid #dceac8;border-radius:10px;padding:7px 14px;font-size:11px;color:#5a7a4a;font-weight:600;white-space:nowrap;animation:hint-bob 2.5s ease-in-out 3s infinite;}
+  @keyframes hint-bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+
+  /* — Smart Learning System (Flashcards) — */
+  .flash-stage{width:100%;max-width:420px;height:344px;display:flex;align-items:center;justify-content:center;position:relative;}
+  .flash-stack{width:260px;height:170px;position:relative;perspective:1200px;}
+  .flash-card{position:absolute;inset:0;border-radius:22px;background:#fff;border:1px solid #dceac8;box-shadow:0 18px 42px rgba(20,45,8,0.12);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:30px;color:#24420d;transform-style:preserve-3d;backface-visibility:hidden;}
+  .flash-card.front{animation:card-flip-front 4s ease-in-out 1s infinite;}
+  .flash-card.back{transform:translate(14px,14px) rotate(-6deg) scale(0.95);opacity:.48;animation:card-slip 4s ease-in-out 1s infinite;}
+  @keyframes card-flip-front{0%,35%{transform:rotateY(0deg);box-shadow:0 18px 42px rgba(20,45,8,0.12)}50%{transform:rotateY(90deg);box-shadow:0 8px 20px rgba(20,45,8,0.06)}55%{transform:rotateY(-90deg)}80%,100%{transform:rotateY(0deg)}}
+  @keyframes card-slip{0%,40%{transform:translate(14px,14px) rotate(-6deg) scale(0.95);opacity:0.48}55%{transform:translate(0,0) rotate(0deg) scale(1);opacity:0.9}80%,100%{transform:translate(14px,14px) rotate(-6deg) scale(0.95);opacity:0.48}}
+  .flash-progress{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:250px;height:10px;background:#e7f0da;border-radius:999px;overflow:hidden;}
+  .flash-progress-fill{position:absolute;inset:0;background:linear-gradient(90deg,#3B6D11,#7bbc33);border-radius:999px;animation:progress-grow 4s linear 1s infinite;}
+  @keyframes progress-grow{0%{width:20%}60%{width:72%}100%{width:72%}}
+  .flash-dots{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:flex;gap:6px;}
+  .flash-dot{width:8px;height:8px;border-radius:50%;background:#dceac8;transition:all 0.3s;}
+  .flash-dot.on{background:#3B6D11;transform:scale(1.2);}
+  .flash-badge{position:absolute;top:18px;right:22px;background:#3B6D11;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:4px 12px;animation:badge-bounce 4s ease-in-out 1s infinite;}
+  @keyframes badge-bounce{0%,50%,100%{transform:scale(1)}55%{transform:scale(1.15)}60%{transform:scale(0.95)}65%{transform:scale(1.08)}70%{transform:scale(1)}}
+
+  /* — Immersive Content — */
+  .video-stage{width:100%;max-width:420px;height:344px;border-radius:24px;overflow:hidden;border:1px solid #dceac8;background:#0e1810;position:relative;}
+  .video-frame{position:absolute;inset:16px 16px 56px;background:linear-gradient(180deg,#1b2419,#0f140f);border-radius:18px;overflow:hidden;}
+  .video-scene-lines{position:absolute;inset:0;display:flex;flex-direction:column;gap:0;overflow:hidden;}
+  .v-line{height:3px;background:rgba(123,188,51,0.12);animation:v-scan 3s linear infinite;}
+  @keyframes v-scan{from{transform:translateY(-100%)}to{transform:translateY(10000%)}}
+  .video-glow{position:absolute;inset:0;background:radial-gradient(circle at 60% 40%,rgba(123,188,51,0.15),transparent 70%);}
+  .video-playhead{position:absolute;left:22px;right:22px;bottom:16px;height:5px;background:rgba(255,255,255,0.1);border-radius:999px;overflow:hidden;}
+  .video-playhead-fill{position:absolute;inset:0;background:linear-gradient(90deg,#3B6D11,#7bbc33);border-radius:999px;animation:play-advance 8s linear infinite;}
+  @keyframes play-advance{from{width:8%}to{width:92%}}
+  .subtitle{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);background:rgba(255,255,255,0.94);padding:7px 14px;border-radius:10px;font-size:13px;color:#1a2418;box-shadow:0 10px 24px rgba(0,0,0,0.2);white-space:nowrap;animation:sub-swap 8s step-end infinite;}
+  @keyframes sub-swap{0%,40%{opacity:1}42%,58%{opacity:0}60%,100%{opacity:1}}
+  .word-popup{position:absolute;top:24px;right:20px;background:#fff;padding:10px 13px;border-radius:14px;border:1px solid #dceac8;box-shadow:0 14px 30px rgba(20,45,8,0.15);font-size:12px;color:#24420d;animation:popup-appear 0.5s cubic-bezier(0.22,1,0.36,1) 0.5s both,popup-vanish 0.3s ease 5s both;}
+  @keyframes popup-appear{from{opacity:0;transform:scale(0.8) translateY(-6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes popup-vanish{from{opacity:1}to{opacity:0}}
+  .video-tap-ring{position:absolute;top:36px;right:32px;width:36px;height:36px;border-radius:50%;border:2px solid rgba(59,109,17,0.5);animation:tap-ring 5s ease-out 4.8s infinite;}
+  @keyframes tap-ring{0%{transform:scale(0.5);opacity:0.8}100%{transform:scale(2.2);opacity:0}}
+
+  /* — Advanced Input — */
+  .book-stage{width:100%;max-width:420px;height:344px;display:flex;align-items:center;justify-content:center;position:relative;perspective:1200px;}
+  .book-page{width:290px;height:210px;background:#fff;border-radius:20px;border:1px solid #dceac8;box-shadow:0 18px 40px rgba(20,45,8,0.12);padding:22px 24px;transform:rotateY(-7deg);position:relative;overflow:hidden;animation:page-breathe 4s ease-in-out infinite;}
+  @keyframes page-breathe{0%,100%{transform:rotateY(-7deg) translateY(0)}50%{transform:rotateY(-4deg) translateY(-4px)}}
+  .book-word{display:inline-block;font-family:'Fraunces',serif;font-size:28px;color:#1f2d19;background:linear-gradient(120deg,rgba(95,157,34,0.18),rgba(95,157,34,0.07));padding:2px 8px;border-radius:8px;animation:word-glow 3s ease-in-out infinite;}
+  @keyframes word-glow{0%,100%{background:linear-gradient(120deg,rgba(95,157,34,0.18),rgba(95,157,34,0.07));box-shadow:none}50%{background:linear-gradient(120deg,rgba(95,157,34,0.32),rgba(95,157,34,0.14));box-shadow:0 0 0 3px rgba(95,157,34,0.15)}}
+  .book-text-lines{margin-top:10px;display:flex;flex-direction:column;gap:7px;}
+  .book-line{height:9px;border-radius:99px;background:#e8f0de;animation:line-shimmer 2.5s ease-in-out infinite;}
+  .book-line:nth-child(1){width:88%;animation-delay:0s;}
+  .book-line:nth-child(2){width:72%;animation-delay:0.3s;}
+  .book-line:nth-child(3){width:80%;animation-delay:0.6s;}
+  @keyframes line-shimmer{0%,100%{opacity:0.5}50%{opacity:1}}
+  .book-card{position:absolute;right:14px;bottom:14px;width:175px;padding:11px 13px;border-radius:16px;background:#f3fbe9;border:1px solid #c0dd97;box-shadow:0 10px 24px rgba(20,45,8,0.12);animation:card-rise 0.5s cubic-bezier(0.22,1,0.36,1) 0.8s both;}
+  @keyframes card-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .book-cursor{position:absolute;width:2px;height:18px;background:#3B6D11;border-radius:1px;top:22px;left:152px;animation:cursor-blink 1s step-end infinite;}
+  @keyframes cursor-blink{0%,100%{opacity:1}50%{opacity:0}}
+
+  /* — Micro Learning — */
+  .micro-stage{width:100%;max-width:420px;height:344px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+  .micro-ring{width:180px;height:180px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;}
+  .micro-ring-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+  .micro-ring-track{fill:none;stroke:#e7f0da;stroke-width:14;}
+  .micro-ring-fill{fill:none;stroke:url(#micro-grad);stroke-width:14;stroke-linecap:round;stroke-dasharray:502;stroke-dashoffset:502;animation:ring-draw 3s cubic-bezier(0.22,1,0.36,1) 0.3s forwards,ring-pulse 2s ease-in-out 3.5s infinite;}
+  @keyframes ring-draw{from{stroke-dashoffset:502}to{stroke-dashoffset:100}}
+  @keyframes ring-pulse{0%,100%{stroke-dashoffset:100}50%{stroke-dashoffset:90}}
+  .micro-ring::before{content:'';position:absolute;inset:18px;border-radius:50%;background:#fff;border:1px solid #dceac8;box-shadow:inset 0 0 0 1px rgba(95,157,34,0.05);}
+  .micro-core{position:relative;z-index:1;text-align:center;}
+  .micro-time{font-family:'Fraunces',serif;font-size:42px;font-weight:300;color:#1f2d19;line-height:1;animation:time-count 3s steps(20,end) 0.3s both;}
+  @keyframes time-count{from{opacity:0}to{opacity:1}}
+  .micro-streak{margin-top:8px;font-size:13px;color:#517044;font-weight:600;}
+  .micro-fire{display:inline-block;animation:fire-bounce 1.2s ease-in-out infinite;}
+  @keyframes fire-bounce{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.18) translateY(-2px)}}
+  .micro-chips{position:absolute;display:flex;gap:8px;bottom:28px;left:50%;transform:translateX(-50%);}
+  .micro-chip{padding:5px 13px;border-radius:999px;font-size:11px;font-weight:700;border:1.5px solid;white-space:nowrap;animation:chip-pop var(--d,0.4s) cubic-bezier(0.22,1,0.36,1) var(--dl,0s) both;}
+  @keyframes chip-pop{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}
+  .micro-xp{position:absolute;top:28px;right:20px;background:#3B6D11;color:#fff;font-size:13px;font-weight:800;border-radius:12px;padding:7px 14px;animation:xp-float 2s ease-in-out 1s infinite;}
+  @keyframes xp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .micro-confetti{position:absolute;pointer-events:none;}
+  .mc{position:absolute;width:7px;height:7px;border-radius:2px;animation:confetti-fall var(--dur,3s) ease-in var(--dl,0s) infinite;opacity:0;}
+  @keyframes confetti-fall{0%{transform:translateY(-30px) rotate(0deg);opacity:1}100%{transform:translateY(320px) rotate(720deg);opacity:0}}
+
+  /* SEE LEXI IN ACTION */
+  .action-section{padding:104px 48px;background:linear-gradient(180deg,#fbfdf8 0%,#f1f8e9 100%);}
+  .action-shell{max-width:1220px;margin:34px auto 0;background:#fff;border:1px solid #dceac8;border-radius:28px;padding:40px 24px 26px;box-shadow:0 20px 44px rgba(20,45,8,0.12);overflow:visible;}
+  .action-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch;position:relative;overflow:visible;padding-top:74px;}
+  .flow-top-bubble{position:absolute;left:50%;top:-46px;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);z-index:7;pointer-events:none;}
+  .flow-top-stem{position:absolute;left:50%;top:-40px;transform:translateX(-50%) scaleY(0);transform-origin:top center;width:4px;height:146px;border-radius:999px;background:linear-gradient(180deg,#f4ffe0 0%,#bde777 26%,#7bbc33 72%,#3B6D11 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.35) inset,0 0 16px rgba(123,188,51,0.22);z-index:6;pointer-events:none;}
+  .flow-line{position:absolute;z-index:4;left:0;top:20px;width:100%;height:2px;border-radius:999px;background:linear-gradient(90deg,rgba(123,188,51,0.04),rgba(95,157,34,0.42),rgba(123,188,51,0.04));box-shadow:0 0 0 1px rgba(123,188,51,0.05),0 0 18px rgba(95,157,34,0.12);pointer-events:none;opacity:0;}
+  .flow-svg{position:absolute;inset:0;z-index:4;width:100%;height:100%;overflow:visible;pointer-events:none;}
+  .flow-top-root,.flow-root,.flow-trunk{fill:none;stroke:url(#flowBranchGradient);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(123,188,51,0.42)) drop-shadow(0 0 14px rgba(95,157,34,0.14));}
+  .flow-branch{fill:none;stroke:url(#flowBranchGradient);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px rgba(123,188,51,0.45)) drop-shadow(0 0 14px rgba(95,157,34,0.18));}
+  .action-step{position:relative;background:linear-gradient(180deg,#fff,#f8fcf2);border:1px solid #dceac8;border-radius:20px;padding:18px 16px;display:flex;flex-direction:column;gap:8px;min-height:160px;opacity:0.55;transform:translateY(14px) scale(0.98);transition:opacity 0.32s,transform 0.32s,border-color 0.32s,box-shadow 0.32s;}
+  .action-step{z-index:2;}
+  .action-step.on{opacity:1;transform:translateY(0) scale(1);border-color:#a7cf74;box-shadow:0 0 0 3px rgba(95,157,34,0.12),0 16px 28px rgba(20,45,8,0.12);}
+  .action-step.success.on{box-shadow:0 0 0 4px rgba(95,157,34,0.18),0 18px 30px rgba(20,45,8,0.14);}
+  .action-badge{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#eaf3de;color:#2f5318;font-size:13px;font-weight:700;}
+  .action-step-title{font-size:18px;font-weight:700;color:#1f3215;line-height:1.2;}
+  .action-step-text{font-size:13px;color:#647558;line-height:1.55;max-width:30ch;}
+  .action-arrow{position:absolute;top:50%;right:-12px;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:#f1f8e7;border:1px solid #dceac8;display:flex;align-items:center;justify-content:center;color:#4f7137;font-weight:700;font-size:12px;z-index:3;}
+  .action-step:last-child .action-arrow{display:none;}
+  .action-pulse{position:absolute;inset:auto 12px 12px auto;width:12px;height:12px;border-radius:50%;background:#7bbc33;box-shadow:0 0 0 0 rgba(123,188,51,0.4);}
+  .action-step.success.on .action-pulse{animation:successPulse 1.4s ease-out 6;}
+
+  /* Pause heavy CSS animations when their section is outside the viewport. */
+  #home:not(.anim-active) .laptop-3d,
+  #home:not(.anim-active) .desk-write-word,
+  .feat-section:not(.anim-active) .feat-ui *,
+  .action-section:not(.anim-active) .action-pulse,
+  #learnsPage:not(.anim-active) .jvectormap-region.selected-region {
+    animation-play-state: paused !important;
+  }
+  .action-cta-row{display:flex;justify-content:center;margin-top:20px;}
+  .action-cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 26px;border:none;border-radius:999px;background:#3B6D11;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 12px 24px rgba(20,45,8,0.18);transition:transform 0.16s,background 0.16s,box-shadow 0.16s;text-decoration:none;}
+  .action-cta-btn:hover{transform:translateY(-1px);background:#2f5a0d;box-shadow:0 14px 28px rgba(20,45,8,0.22);}
+  @keyframes successPulse{0%{box-shadow:0 0 0 0 rgba(123,188,51,0.45);}70%{box-shadow:0 0 0 16px rgba(123,188,51,0);}100%{box-shadow:0 0 0 0 rgba(123,188,51,0);}}
+
+  /* CTA */
+  .cta-section{background:var(--green);text-align:center;padding:120px 48px;}
+  .cta-section .stitle{color:var(--white);}
+  .cta-section .stitle em{color:var(--green-light);font-style:italic;}
+  .cta-section .ssub{color:rgba(255,255,255,0.7);margin:0 auto 44px;}
+  .cta-rotating-language{display:inline-block;min-width:8.5ch;transition:opacity 0.26s ease,transform 0.26s ease;}
+  .cta-rotating-language.changing{opacity:0;transform:translateY(-0.2em);}
+  .cta-btn-text{display:inline-block;min-width:20ch;transition:opacity 0.26s ease,transform 0.26s ease;}
+  .cta-btn-text.changing{opacity:0;transform:translateY(-0.2em);}
+  .btn-white{background:var(--white);color:var(--green-dark);border:none;padding:16px 36px;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;display:inline-block;transition:transform 0.15s;}
+  .btn-white:hover{transform:translateY(-2px);}
+
+  /* WHO IT'S FOR */
+  .audience-section{padding:112px 48px 104px;background:linear-gradient(180deg,#f8fbf3 0%,#eef6e5 100%);position:relative;--audience-accent:#6DAE34;}
+  .audience-flow{display:block;position:relative;overflow:visible;padding-top:74px;margin:0 6px 8px;min-height:112px;pointer-events:none;}
+  .audience-flow-top-bubble{position:absolute;left:50%;top:-46px;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--flow-bubble-bg);box-shadow:var(--flow-bubble-shadow);z-index:7;pointer-events:none;}
+  .audience-flow-top-stem{position:absolute;left:50%;top:-40px;transform:translateX(-50%) scaleY(0);transform-origin:top center;width:4px;height:146px;border-radius:999px;background:linear-gradient(180deg,#f4ffe0 0%,#bde777 26%,#7bbc33 72%,#3B6D11 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.35) inset,0 0 16px rgba(123,188,51,0.22);z-index:6;pointer-events:none;}
+  .audience-flow-line{position:absolute;z-index:4;left:0;top:20px;width:100%;height:2px;border-radius:999px;background:linear-gradient(90deg,rgba(123,188,51,0.04),rgba(95,157,34,0.42),rgba(123,188,51,0.04));box-shadow:0 0 0 1px rgba(123,188,51,0.05),0 0 18px rgba(95,157,34,0.12);pointer-events:none;opacity:0;}
+  .audience-flow-svg{position:absolute;inset:0;z-index:4;width:100%;height:100%;overflow:visible;pointer-events:none;}
+  .audience-flow-top-root,.audience-flow-root,.audience-flow-trunk{fill:none;stroke:var(--audience-accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(123,188,51,0.42)) drop-shadow(0 0 14px rgba(95,157,34,0.14));}
+  .audience-flow-branch{fill:none;stroke:var(--audience-accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px rgba(123,188,51,0.45)) drop-shadow(0 0 14px rgba(95,157,34,0.18));}
+  .audience-shell{max-width:1180px;margin:34px auto 0;display:flex;flex-direction:column;gap:0;align-items:stretch;}
+  .audience-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;position:relative;z-index:2;}
+  .audience-tab{position:relative;background:#fff;border:1px solid #dceac8;border-radius:18px;padding:18px 12px 20px;text-align:center;cursor:pointer;transition:border-color 0.24s,box-shadow 0.24s,transform 0.24s,background 0.24s;color:#22331a;overflow:hidden;}
+  .audience-tab:hover{transform:translateY(-2px);border-color:#bfdc95;box-shadow:0 10px 26px rgba(20,45,8,0.12);}
+  .audience-tab.on{background:#f6fbef;border-color:#9fc96a;box-shadow:0 0 0 3px rgba(95,157,34,0.15),0 14px 30px rgba(20,45,8,0.14);transform:translateY(-3px);}
+  .audience-tab-glow{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 82%,rgba(123,188,51,0.18),transparent 66%);transition:opacity 0.35s;pointer-events:none;}
+  .audience-tab.on .audience-tab-glow{opacity:1;}
+  .audience-tab-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;margin:0 auto 9px;border-radius:12px;background:linear-gradient(180deg,#f7fcef,#edf7e0);border:1px solid #d7e8c3;color:#5f7c49;transition:background 0.28s,border-color 0.28s,color 0.28s,box-shadow 0.28s;}
+  .audience-tab-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .audience-tab.on .audience-tab-icon{background:linear-gradient(180deg,#effadb,#deefc4);border-color:#9fc96a;color:#2f5f12;box-shadow:0 6px 14px rgba(95,157,34,0.18);}
+  .audience-tab-label{font-size:14px;font-weight:700;line-height:1.2;display:block;letter-spacing:0.04em;text-transform:uppercase;}
+  .audience-tab-sub{font-size:11px;color:#6a7b5d;display:block;margin-top:6px;}
+  .audience-tab-dot{position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:#dceac8;border:2px solid #9dbb7f;box-shadow:0 0 0 0 rgba(123,188,51,0);transition:background 0.28s,border-color 0.28s,box-shadow 0.28s;}
+  .audience-tab.on .audience-tab-dot{background:#7bbc33;border-color:#3B6D11;box-shadow:0 0 10px rgba(123,188,51,0.55);}
+  .audience-stage{position:relative;height:112px;margin:0 6px;overflow:visible;z-index:1;}
+  .audience-stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .audience-lane-path{fill:none;stroke:var(--green);stroke-linecap:round;}
+  .audience-panel{background:#fff;border:1px solid #dceac8;border-radius:24px;padding:28px 30px;box-shadow:0 20px 44px rgba(20,45,8,0.12);min-height:280px;position:relative;overflow:hidden;}
+  .audience-panel::after{content:'';position:absolute;right:-70px;bottom:-90px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(123,188,51,0.18),transparent 72%);pointer-events:none;}
+  .audience-journey-intro{margin-top:18px;opacity:1;transform:none;}
+  .audience-journey-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8ea37b;font-weight:700;}
+  .audience-journey-name{font-size:19px;font-weight:700;color:#2f5318;margin-top:6px;}
+  .audience-journey-wrap{position:relative;margin-top:14px;}
+  .audience-spine-fill{position:absolute;left:16px;top:18px;bottom:16px;width:3px;border-radius:999px;background:linear-gradient(180deg,#e7f4d3,#9fce63,#3B6D11);transform-origin:top center;transform:scaleY(0);box-shadow:0 0 12px rgba(123,188,51,0.25);}
+  .audience-journey-steps{position:relative;display:flex;flex-direction:column;gap:4px;}
+  .audience-journey-steps::before{content:'';position:absolute;left:17px;top:18px;bottom:16px;width:1px;background:#dceac8;}
+  .audience-journey-step{display:flex;gap:14px;align-items:flex-start;padding:6px 0 14px;opacity:1;transform:none;}
+  .audience-step-node{width:34px;height:34px;min-width:34px;border-radius:50%;border:1px solid #c8ddaf;background:#f7fcef;color:#6b8356;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:border-color 0.3s,color 0.3s,box-shadow 0.3s,background 0.3s;}
+  .audience-step-body{padding-top:4px;flex:1;}
+  .audience-step-title{font-size:14px;font-weight:700;color:#395729;line-height:1.3;}
+  .audience-step-code{font-size:12px;color:#4f6940;line-height:1.55;margin-top:4px;font-weight:500;max-width:52ch;}
+  .audience-journey-step.lit .audience-step-node{border-color:#7bbc33;background:#fff;color:#3B6D11;box-shadow:0 0 0 4px rgba(123,188,51,0.16),0 0 12px rgba(123,188,51,0.28);}
+  .audience-journey-step.lit .audience-step-title{color:#203a14;}
+  .audience-journey-step.lit .audience-step-code{color:#5c7a4b;}
+  .audience-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#3B6D11;background:#f1f8e7;border:1px solid #dceac8;padding:6px 12px;border-radius:999px;}
+  .audience-eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:#69aa2f;}
+  .audience-title{font-family:'Fraunces',serif;font-size:clamp(30px,3.3vw,46px);line-height:1.04;letter-spacing:-0.02em;color:#1d3112;margin:18px 0 14px;}
+  .audience-text{font-size:16px;line-height:1.72;color:#586a4b;max-width:60ch;}
+  .audience-points{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .audience-point{background:#fff;border:1px solid #bfdc95;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;color:#2f5318;}
+
+  /* LEARNS */
+  .learns-wrap{padding-top:110px;min-height:100vh;background:linear-gradient(180deg,#fff,#f5faee 70%);}
+  .learns-top{max-width:760px;margin:20px auto 8px;padding:0 48px;}
+  .learns-copy .tag,.learns-copy .stitle,.learns-copy .ssub{text-align:center;margin-left:auto;margin-right:auto;}
+  .learns-map-shell{max-width:1040px;margin:26px auto 0;padding:0 48px;}
+  .learns-map-wrap{position:relative;border:1px solid #dceac8;border-radius:24px;background:linear-gradient(180deg,#fbfef8,#f1f8e7);box-shadow:0 20px 44px rgba(20,45,8,0.12);overflow:hidden;min-height:420px;}
+  .learns-map-canvas{height:420px;width:100%;}
+  .learns-map-panel{position:absolute;right:18px;top:18px;max-width:320px;background:#fff;border:1px solid #dceac8;border-radius:18px;padding:16px 16px 14px;box-shadow:0 16px 36px rgba(20,45,8,0.16);opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity 0.24s ease,transform 0.24s ease;}
+  .learns-map-panel.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .learns-map-region{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#6a8455;font-weight:700;}
+  .learns-map-title{font-family:'Fraunces',serif;font-size:30px;line-height:1.02;color:#1d3112;margin:8px 0 12px;}
+  .learns-map-selected{margin-top:8px;font-size:13px;color:#2d4d1d;font-weight:700;}
+  .learns-map-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none;}
+  .learns-map-language-card{width:100%;text-align:left;border:1px solid #dceac8;border-radius:16px;background:#f8fcf4;padding:12px 12px 11px;cursor:pointer;transition:transform 0.16s ease,border-color 0.16s ease,box-shadow 0.16s ease,background 0.16s ease;}
+  .learns-map-language-card:hover,.learns-map-language-card.active{transform:translateY(-1px);border-color:#9fc96a;background:#f2f9e7;box-shadow:0 10px 20px rgba(20,45,8,0.12);}
+  .learns-map-language-title{font-size:15px;font-weight:700;color:#203216;line-height:1.2;}
+  .learns-map-language-sub{font-size:12px;color:#5d7150;line-height:1.45;margin-top:4px;}
+  .learns-map-language-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .learns-map-language-pill{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#3b6d11;background:#eaf3de;border:1px solid #cfe4af;border-radius:999px;padding:4px 8px;}
+  .learns-map-fallback{height:100%;padding:18px;display:flex;flex-direction:column;gap:14px;justify-content:flex-start;}
+  .learns-map-fallback-title{font-family:'Fraunces',serif;font-size:24px;line-height:1.05;color:#203216;}
+  .learns-map-fallback-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .learns-map-fallback-btn{border:1px solid #dceac8;border-radius:16px;background:#fff;padding:14px;text-align:left;cursor:pointer;transition:transform 0.16s ease,border-color 0.16s ease,box-shadow 0.16s ease,background 0.16s ease;display:flex;flex-direction:column;gap:6px;}
+  .learns-map-fallback-btn:hover,.learns-map-fallback-btn.active{transform:translateY(-1px);border-color:#9fc96a;background:#f2f9e7;box-shadow:0 10px 20px rgba(20,45,8,0.12);}
+  .learns-map-fallback-btn span{font-size:13px;font-weight:700;color:#203216;}
+  .learns-map-fallback-btn strong{font-size:11px;font-weight:700;color:#5d7150;text-transform:uppercase;letter-spacing:0.06em;}
+  .learns-map-start{display:inline-flex;align-items:center;justify-content:center;margin-top:14px;height:40px;padding:0 16px;border:none;border-radius:999px;background:#3B6D11;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 10px 22px rgba(20,45,8,0.18);transition:transform 0.15s ease,background 0.15s ease;}
+  .learns-map-start:hover{transform:translateY(-1px);background:#2f5a0d;}
+  .learns-map-hint{position:absolute;left:18px;bottom:14px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.92);border:1px solid #dceac8;color:#5f7c49;font-size:11px;font-weight:600;}
+  .learns-grid{max-width:1180px;margin:44px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0 48px 90px;align-items:start;}
+  .lang-card{display:flex;align-items:center;gap:18px;padding:20px 24px;border-radius:18px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;transition:background 0.2s,border-color 0.2s,box-shadow 0.2s,transform 0.2s;}
+  .lang-card:hover,.lang-card.on{background:var(--green-light);border-color:var(--green-mid);box-shadow:0 4px 20px rgba(59,109,17,0.1);transform:translateY(-1px);}
+  .lang-flag{font-size:28px;flex-shrink:0;}
+  .lang-info{flex:1;}
+  .lang-name{font-size:16px;font-weight:600;color:#111;margin-bottom:3px;}
+  .lang-sub{font-size:12px;color:#999;font-weight:400;}
+  .lang-card:hover .lang-name,.lang-card.on .lang-name{color:var(--green-dark);}
+  .lang-arrow{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s,border-color 0.2s;}
+  .lang-arrow svg{width:14px;height:14px;stroke:var(--gray-text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .lang-card:hover .lang-arrow,.lang-card.on .lang-arrow{background:var(--green);border-color:var(--green);}
+  .lang-card:hover .lang-arrow svg,.lang-card.on .lang-arrow svg{stroke:white;}
+  .lang-card.on .lang-arrow svg{transform:rotate(90deg);}
+  .lang-arrow svg{transition:stroke 0.2s, transform 0.3s cubic-bezier(0.4,0,0.2,1);}
+
+  /* FOOTER */
+  footer{padding:48px;border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+  .flogo{font-family:'Fraunces',serif;font-size:20px;font-weight:700;}
+  .flogo span{color:var(--green);}
+  .flinks{display:flex;gap:28px;list-style:none;}
+  .flinks a{font-size:13px;color:var(--gray-text);text-decoration:none;transition:color 0.2s;}
+  .flinks a:hover{color:var(--black);}
+  .fcopy{font-size:12px;color:#bbb;}
+
+  @keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+
+  /* Lang expand panel */
+  .lang-expand{max-height:0;overflow:hidden;transition:max-height 0.42s cubic-bezier(0.4,0,0.2,1),opacity 0.35s ease;opacity:0;margin-top:0;}
+  .lang-expand.open{max-height:240px;opacity:1;margin-top:2px;}
+  .lang-expand-inner{background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:14px;padding:20px 24px;display:flex;flex-direction:column;gap:14px;}
+  .lang-expand-top{display:flex;align-items:flex-start;gap:14px;}
+  .lang-expand-flag{font-size:40px;line-height:1;flex-shrink:0;}
+  .lang-expand-title{font-size:15px;font-weight:600;color:var(--green-dark);margin-bottom:5px;}
+  .lang-expand-fact{font-size:13px;font-weight:300;color:#555;line-height:1.65;}
+  .lang-expand-tags{display:flex;gap:8px;flex-wrap:wrap;}
+  .lang-expand-tag{background:white;border:1px solid var(--green-mid);border-radius:100px;padding:4px 12px;font-size:11px;font-weight:500;color:var(--green-dark);}
+  .lang-expand-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .lang-expand-timeline{font-size:12px;color:var(--green-dark);display:flex;align-items:center;gap:6px;}
+  .lang-expand-timeline::before{content:'⏱';font-size:14px;}
+  .lang-start{background:var(--green);color:white;border:none;border-radius:100px;padding:10px 28px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.2s,transform 0.15s;}
+  .lang-start:hover{background:var(--green-dark);transform:translateY(-1px);}
+  .reveal{opacity:1;transform:none;}
+  .reveal.visible{opacity:1;transform:none;}
+
+  @media(min-width:1200px){
+    .ad-hero{padding:96px 40px 28px;}
+    .card-stack{max-width:1380px;height:660px;}
+    .front-copy{padding:66px 60px 46px 34px;}
+    .front-copy h2{font-size:clamp(72px,5.4vw,92px);}
+    .front-copy p{font-size:18px;max-width:45ch;}
+    .front-visual{padding:38px;}
+    .desk-scene{width:min(90%,520px);}
+    .audience-shell{max-width:1240px;}
+    .learns-grid{max-width:1240px;}
+  }
+
+
+
+  @media(max-width:900px){
+    .ad-hero{padding:90px 28px 20px;}
+    .ad-board{padding:20px 0 22px;min-height:680px;}
+    .card-stack{height:520px;max-width:980px;}
+    .front-copy h2{font-size:46px;}
+    .front-copy{padding:36px 26px 24px 18px;}
+    .desk-scene{width:min(90%,430px);}
+    .desk-book{width:148px;height:200px;right:6px;top:34px;}
+    .desk-notebook{width:240px;height:198px;left:6px;bottom:26px;}
+    .desk-pen{left:194px;top:36px;height:188px;}
+    .desk-sticky{width:116px;height:98px;bottom:22px;}
+    .stats-bar{padding:8px 28px 44px;gap:12px;}
+    .contact-block{padding:8px 28px 66px;}
+    .contact-text h3{font-size:34px;}
+    .feature-story{grid-template-columns:1fr;gap:18px;}
+    .feature-list{padding-bottom:12px;}
+    .feature-item{min-height:auto;opacity:1;transform:none;padding:16px 0;}
+    .feature-item-inner{max-width:100%;padding-right:0;}
+    .feature-item .feat-title{font-size:clamp(32px,8vw,48px);max-width:unset;}
+    .feature-item .feat-desc{font-size:23px;max-width:26ch;}
+    .feature-sticky{position:relative;top:auto;height:auto;}
+    .feature-stage{height:380px;}
+    .feature-bridge-line{display:none;}
+    .action-section{padding:84px 28px;}
+    .action-flow{grid-template-columns:repeat(2,minmax(0,1fr));padding-top:70px;}
+    .action-step:nth-of-type(2) .action-arrow{display:none;}
+    .action-step:nth-of-type(4) .action-arrow{display:none;}
+    .audience-section{padding:92px 28px 84px;}
+    .audience-shell{gap:0;}
+    .audience-tabs{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .audience-panel{min-height:240px;}
+    .learns-map-shell{padding:0 28px;}
+    .learns-map-panel{max-width:280px;}
+    .learns-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media(max-width:768px){
+    nav{padding:0 20px;}
+    .animated-button{padding:10px 18px;font-size:12px;}
+    .page-arrow{display:none;}
+    section{padding:70px 20px;}
+    .ad-title{font-size:clamp(34px,10vw,48px);margin:18px 0 20px;}
+    .ad-brand{font-size:36px;}
+    .card-stack{height:590px;}
+    .card-back{width:92%;height:88%;}
+    .card-front{width:96%;}
+    .front-panel{grid-template-columns:1fr;}
+    .front-copy{padding:28px 22px 16px 14px;}
+    .front-copy h2{font-size:41px;}
+    .front-actions{flex-direction:column;align-items:stretch;}
+    .front-actions input,.front-actions button{width:100%;}
+    .front-visual{min-height:300px;padding:18px;}
+    .front-visual::before{inset:14px;border-radius:14px;}
+    .desk-scene{width:min(98%,340px);aspect-ratio:1/1;transform:none;}
+    .desk-book{width:126px;height:156px;right:4px;top:18px;padding:12px 10px;}
+    .desk-book::before{font-size:16px;}
+    .desk-book::after{left:10px;bottom:10px;font-size:9px;}
+    .desk-notebook{width:190px;height:154px;left:8px;bottom:12px;padding:14px 14px 12px 22px;}
+    .desk-note-title{font-size:18px;}
+    .desk-note-sub{font-size:9px;margin-top:6px;}
+    .desk-handwrite{gap:5px;margin-top:8px;}
+    .desk-write-word{font-size:10px;border-right-width:1px;}
+    .desk-pen{width:10px;height:145px;left:152px;top:22px;}
+    .desk-sticky{width:92px;height:74px;bottom:10px;padding:8px 7px;font-size:9px;}
+    .hero-hello-bubble{font-size:10px;padding:7px 8px 6px;}
+    .hero-hello-bubble.b1{top:14px;left:8px;}
+    .hero-hello-bubble.b2{top:16px;right:8px;}
+    .hero-hello-bubble.b3{top:84px;left:50%;}
+    .hero-hello-bubble.b4{bottom:14px;left:8px;}
+    .hero-hello-bubble.b5{bottom:10px;right:8px;}
+    .hero-hello-bubble.b6{top:54px;left:6px;}
+    .hero-hello-bubble.b7{top:58px;right:6px;}
+    .hero-hello-bubble.b8{bottom:52px;left:32%;}
+    .hero-hello-bubble.b9{bottom:48px;right:30%;}
+    .hero-process-connector{display:none;}
+    .stats-bar{padding:10px 20px 40px;gap:10px;}
+    .stat{min-width:150px;padding:18px 14px;}
+    .contact-panel{padding:28px 22px;}
+    .contact-text h3{font-size:31px;}
+    .feat-shell{margin-top:36px;}
+    .feature-stage{height:320px;padding:14px;}
+    .feature-scene{inset:14px;}
+    .feature-item{padding:14px 0;}
+    .feature-item .feat-title{font-size:clamp(30px,10vw,42px);}
+    .feature-item .feat-desc{font-size:20px;line-height:1.28;max-width:22ch;}
+    .feat-spotlight{grid-template-columns:1fr;padding:24px 0 12px;}
+    .feat-card{grid-template-columns:1fr;min-height:auto;padding:20px;}
+    .feat-media{min-height:280px;}
+    .action-section{padding:74px 20px;}
+    .action-shell{padding:18px 14px;}
+    .action-flow{grid-template-columns:1fr;gap:10px;padding-top:64px;}
+    .action-step{min-height:140px;padding:16px 14px;}
+    .action-arrow{display:none;}
+    .audience-section{padding:80px 20px 70px;}
+    .audience-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+    .audience-stage{height:86px;}
+    .audience-tab{padding:14px 15px;}
+    .audience-panel{padding:22px 20px;}
+    .audience-title{font-size:clamp(28px,8vw,36px);}
+    .audience-text{font-size:15px;}
+    .learns-map-shell{padding:0 20px;}
+    .learns-map-wrap{min-height:390px;}
+    .learns-map-canvas{height:390px;}
+    .learns-map-panel{position:relative;right:auto;top:auto;margin:12px;max-width:none;}
+    .learns-map-hint{left:12px;bottom:12px;}
+    .learns-top,.learns-grid{padding-left:20px;padding-right:20px;}
+    .learns-grid{grid-template-columns:1fr;}
+    .learns-map-fallback-grid{grid-template-columns:1fr;}
+
+    footer{padding:32px 20px;flex-direction:column;align-items:flex-start;}
+  }
+
+  @media(max-width:600px){
+    nav{height:58px;padding:0 14px;}
+    .nav-logo{font-size:21px;}
+    .animated-button{padding:9px 14px;font-size:11px;box-shadow:0 0 0 1.5px #2d5f12;}
+    .ad-hero{padding:74px 12px 14px;}
+    .ad-board{min-height:auto;padding:12px 0 16px;}
+    .card-stack{height:auto;}
+    .card-back{display:none;}
+    .card-front{width:100%;}
+    .front-copy{padding:20px 14px 12px;}
+    .front-copy h2{font-size:clamp(31px,9.6vw,40px);line-height:0.98;}
+    .front-copy p{font-size:14px;line-height:1.45;margin-bottom:18px;}
+    .front-actions{gap:8px;}
+    .front-actions input,.front-actions button{height:42px;font-size:13px;}
+    .front-visual{min-height:260px;padding:12px;}
+    .front-visual::before{inset:10px;border-radius:12px;}
+    .desk-scene{width:min(100%,300px);}
+    .desk-book{width:102px;height:134px;right:0;top:14px;padding:10px 8px;}
+    .desk-book::before{font-size:13px;}
+    .desk-book::after{font-size:8px;left:8px;bottom:8px;}
+    .desk-notebook{width:168px;height:136px;left:6px;bottom:10px;padding:10px 10px 10px 16px;}
+    .desk-note-title{font-size:15px;}
+    .desk-note-sub{font-size:8px;letter-spacing:0.04em;}
+    .desk-write-word{font-size:9px;}
+    .desk-pen{width:8px;height:124px;left:136px;top:18px;}
+    .desk-sticky{width:78px;height:62px;bottom:8px;padding:6px;font-size:8px;}
+    .hero-hello-layer{display:none;}
+    .stats-bar{padding:8px 12px 26px;}
+    .stat{min-width:128px;padding:14px 10px;}
+    .stat-num{font-size:22px;}
+    .action-flow{padding-top:52px;}
+    .audience-section{padding:66px 14px 54px;}
+    .audience-flow{min-height:88px;padding-top:56px;}
+    .audience-tabs{grid-template-columns:1fr;gap:8px;}
+    .audience-tab{padding:12px 12px 14px;}
+    .audience-panel{padding:18px 14px;}
+    .audience-title{font-size:clamp(24px,8.6vw,32px);margin:12px 0 10px;}
+    .audience-text{font-size:14px;line-height:1.55;}
+    .learns-map-shell{padding:0 12px;}
+    .learns-top,.learns-grid{padding-left:12px;padding-right:12px;}
+    .learns-map-wrap{min-height:330px;border-radius:18px;}
+    .learns-map-canvas{height:330px;}
+  }
+
+  @media(max-width:420px){
+    .front-copy h2{font-size:30px;}
+    .front-copy p{font-size:13px;}
+    .desk-scene{width:min(100%,276px);}
+    .desk-book{width:94px;height:122px;}
+    .desk-notebook{width:150px;height:122px;}
+    .desk-write-word{font-size:8px;}
+    .action-shell{padding:14px 10px;}
+    .action-step{padding:14px 10px;min-height:124px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="bgOverlay" aria-hidden="true"></div>
+
+<nav>
+  <div class="nav-logo">le<span>xi</span></div>
+  <div class="nav-right">
+    <button class="animated-button" id="journeyButton" type="button">
+      <svg viewBox="0 0 24 24" class="arr-2"><path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path></svg>
+      <span class="text">Begin Your Journey</span>
+      <span class="circle"></span>
+      <svg viewBox="0 0 24 24" class="arr-1"><path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path></svg>
+    </button>
+  </div>
+</nav>
+
+<button class="page-arrow left disabled" id="nav-prev">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+</button>
+<button class="page-arrow right" id="nav-next">
+  <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+</button>
+
+<main>
+<section id="homePage" class="page active">
+
+<!-- HERO -->
+<div class="ad-hero reveal" id="home">
+  <div class="ad-board">
+    <div class="ad-brand">lexi</div>
+    <h1 class="ad-title">More speaking, less admin</h1>
+
+    <div class="card-stack hero-visual" aria-label="Three stacked white cards">
+      <div class="stack-card card-back left" aria-hidden="true"></div>
+      <div class="stack-card card-back right" aria-hidden="true"></div>
+
+      <article class="stack-card card-front">
+        <div class="front-panel">
+          <div class="front-copy">
+            <h2 class="hero-title">Unlock your full potential</h2>
+            <p class="hero-sub">Lexi is the only tutor you need to build confidence and speak naturally every day.</p>
+            <div class="front-actions">
+              <input type="email" placeholder="Enter your email" aria-label="Email address">
+              <button class="hero-button" type="button">Start Free</button>
+            </div>
+          </div>
+          <div class="front-visual" aria-label="Top-down desk learning setup with notebook, pen, and language book">
+            <div class="desk-scene" aria-hidden="true">
+              <div class="desk-book"></div>
+              <div class="desk-notebook">
+                <div class="desk-note-title">Bonjour, Lexi</div>
+                <div class="desk-note-sub">Lesson Notes • Daily Practice</div>
+                <div class="desk-handwrite" aria-hidden="true">
+                  <span class="desk-write-word w1">Je pratique 15 minutes.</span>
+                  <span class="desk-write-word w2">Today: verbs + pronunciation.</span>
+                  <span class="desk-write-word w3">Speak first. Perfect later.</span>
+                </div>
+              </div>
+              <div class="desk-pen"></div>
+              <div class="desk-sticky">Review verbs<br>at 7:00 PM</div>
+            </div>
+            <div class="hero-hello-layer" aria-hidden="true">
+              <span class="hero-hello-bubble b1">Hello</span>
+              <span class="hero-hello-bubble b2">Hola</span>
+              <span class="hero-hello-bubble b3">Bonjour</span>
+              <span class="hero-hello-bubble b4">Ciao</span>
+              <span class="hero-hello-bubble b5">Hallo</span>
+              <span class="hero-hello-bubble b6">Nǐ hǎo</span>
+              <span class="hero-hello-bubble b7">Konnichiwa</span>
+              <span class="hero-hello-bubble b8">Marhaban</span>
+              <span class="hero-hello-bubble b9">Olá</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+    <div class="hero-process-connector" aria-hidden="true">
+      <div class="hero-process-progress" id="heroProcessProgress"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="tag">How it works</div>
+  <h2 class="stitle">Learning Process<br><em>before you choose</em></h2>
+  <p class="ssub">See exactly how Lexi teaches, why it works, and what you can expect before picking a language.</p>
+  <div class="steps" id="stepsWrap">
+    <div class="steps-fill" id="stepsFill"></div>
+    <div class="step" id="st1">
+      <div class="step-num">01 — Start your path</div>
+      <div class="step-title">Pick your language & goal</div>
+      <div class="step-desc">Tell Lexi what you want — travel, business, or fluency. Lexi builds a learning path that adapts as you improve.</div>
+    </div>
+    <div class="step" id="st2">
+      <div class="step-num">02 — Learn by doing</div>
+      <div class="step-title">Practice real language daily</div>
+      <div class="step-desc">Speak, listen, and understand real conversations — not just words. Lexi gives instant feedback and shows you how to improve.</div>
+    </div>
+    <div class="step" id="st3">
+      <div class="step-num">03 — Learn what you forget</div>
+      <div class="step-title">Smart repetition system</div>
+      <div class="step-desc">Lexi tracks your mistakes and brings back words at the right time — so you remember them for life.</div>
+    </div>
+    <div class="step" id="st4">
+      <div class="step-num">04 — See your growth</div>
+      <div class="step-title">Track real progress</div>
+      <div class="step-desc">Watch your streak grow, your vocabulary expand, and your fluency improve — every day.</div>
+    </div>
+    <div class="step" id="st5">
+      <div class="step-num">05 — Use it in real life</div>
+      <div class="step-title">Speak with real people</div>
+      <div class="step-desc">Practice with real users and apply what you have learned in real conversations.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="feat-section anim-active">
+  <div class="feat-shell">
+    <div class="tag">Feature spotlight</div>
+    <h2 class="stitle">One feature at a time<br>to <em><span id="featureGoWord" class="swap-word">go fluent</span></em></h2>
+    <p class="feat-sub">Swipe through the core experiences. Each panel shows the kind of motion the product should feel like: alive, guided, and hard to ignore.</p>
+    <div class="feature-story reveal" id="featureStory">
+      <div class="feature-bridge-line" id="featureBridgeLine" aria-hidden="true">
+        <div class="feature-bridge-fill" id="featureBridgeFill"></div>
+        <div class="feature-bridge-markers" id="featureBridgeMarkers"></div>
+      </div>
+      <div class="feature-list">
+        <article class="feature-item active" data-feature="ai">
+          <div class="feature-item-inner">
+            <div class="feat-label">1. AI Learning Core</div>
+            <h3 class="feat-title">AI Learning Core</h3>
+            <p class="feat-desc">Lexi starts by listening to your goal, then opens a guided AI lesson that feels like a real tutor. It explains grammar in plain words, catches mistakes instantly, and rewrites your sentence with clear examples. Every reply adapts to your level, so beginners stay calm while advanced learners keep moving fast.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="voice">
+          <div class="feature-item-inner">
+            <div class="feat-label">2. Speaking & Communication</div>
+            <h3 class="feat-title">Live voice, live response</h3>
+            <p class="feat-desc">When you reach voice mode, the mic goes live and the lesson becomes conversation practice. Lexi listens in real time, detects pronunciation gaps, and answers instantly so the flow never breaks. You can repeat a phrase, slow it down, and try again until your rhythm sounds natural and confident in everyday speech.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="scene">
+          <div class="feature-item-inner">
+            <div class="feat-label">3. Real-Life Practice</div>
+            <h3 class="feat-title">Practice in living scenes</h3>
+            <p class="feat-desc">Lexi then places you inside situations like airports, interviews, and restaurants, where every line has context. You respond as if the moment is happening now, not in a textbook. If you hesitate, Lexi gives soft hints and lets you continue the exchange, helping you build real conversational reflexes before real-world pressure appears.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="flash">
+          <div class="feature-item-inner">
+            <div class="feat-label">4. Smart Learning System</div>
+            <h3 class="feat-title">Memory that follows you</h3>
+            <p class="feat-desc">Behind the scenes, Lexi tracks what you forget and what you master. Hard words return sooner, easy words step back, and your review queue changes daily without manual setup. That spacing logic keeps memory strong while saving time, so you are always practicing the right thing at the right moment.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="video">
+          <div class="feature-item-inner">
+            <div class="feat-label">5. Immersive Content</div>
+            <h3 class="feat-title">Watch, tap, understand</h3>
+            <p class="feat-desc">With immersive media, you learn from short videos, captions, and native phrasing in one screen. Tap any word to see meaning, tone, and usage without leaving the lesson. Instead of memorizing isolated terms, you absorb language through context, which makes comprehension faster and helps you remember expressions naturally in conversation.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="book">
+          <div class="feature-item-inner">
+            <div class="feat-label">6. Advanced Input</div>
+            <h3 class="feat-title">Understand deeper context</h3>
+            <p class="feat-desc">Advanced input mode lets you open dense content like articles, books, and scripts while Lexi stays beside you as a smart explainer. Select a phrase and get a quick meaning, grammar breakdown, and better alternatives. This turns difficult material into guided practice so your reading depth grows alongside speaking confidence.</p>
+          </div>
+        </article>
+
+        <article class="feature-item" data-feature="micro">
+          <div class="feature-item-inner">
+            <div class="feat-label">7. Micro Learning</div>
+            <h3 class="feat-title">Five minutes still counts</h3>
+            <p class="feat-desc">Even short sessions create visible progress with Lexi micro learning. In five focused minutes, you review key words, complete one speaking prompt, and lock in a daily streak. The system rewards consistency over marathon study, so language growth stays realistic for busy days while momentum keeps building across the week.</p>
+          </div>
+        </article>
+      </div>
+
+      <aside class="feature-sticky" aria-hidden="true">
+        <div class="feature-stage">
+          <!-- 1. AI Learning Core -->
+          <div class="feature-scene active" data-scene="ai">
+            <div class="feat-ui ai-window">
+              <div class="ai-window-top">
+                <div class="ai-dot" style="background:#f87171;"></div>
+                <div class="ai-dot" style="background:#fbbf24;"></div>
+                <div class="ai-dot" style="background:#7bbc33;"></div>
+                <span style="margin-left:10px;font-size:11px;color:#888;font-weight:600;">Lexi AI Tutor</span>
+              </div>
+              <div class="ai-chat">
+                <div class="ai-bubble user">Explain the past tense for me</div>
+                <div class="ai-bubble ai"><span class="typing"><span></span><span></span><span></span></span>&nbsp; Analysing your level…</div>
+                <div class="ai-bubble user">I <span class="ai-highlight">go</span> to school yesterday.</div>
+                <div class="ai-bubble ai">✓ Correction: I <span class="ai-highlight">went</span> to school yesterday.</div>
+                <div class="difficulty-slider">
+                  <div class="difficulty-fill"></div>
+                  <div class="difficulty-knob"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Speaking & Communication -->
+          <div class="feature-scene" data-scene="voice">
+            <div class="feat-ui mic-stage">
+              <div class="mic-feedback">🎙 Listening…</div>
+              <div class="mic-score">92% match</div>
+              <div class="mic-ripple"></div>
+              <div class="mic-ripple"></div>
+              <div class="mic-ripple"></div>
+              <div class="mic-button">
+                <svg viewBox="0 0 24 24"><rect x="9" y="4" width="6" height="11" rx="3"></rect><path d="M5 11v1a7 7 0 0 0 14 0v-1"></path><path d="M12 18v3"></path></svg>
+              </div>
+              <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+
+          <!-- 3. Real-Life Practice -->
+          <div class="feature-scene" data-scene="scene">
+            <div class="feat-ui scene-card">
+              <div class="scene-top"><span>✈️ Airport Check-in</span><span class="scene-tag">Live roleplay</span></div>
+              <div class="scene-body">
+                <div class="scene-msg user">I need to check in my bag.</div>
+                <div class="scene-msg ai">Of course! How many bags do you have?</div>
+                <div class="scene-msg user">Just one. Is there a fee?</div>
+                <div class="scene-msg ai">No extra charge for one bag. Here you go!</div>
+              </div>
+              <div class="scene-hint">💡 Tap to reply naturally</div>
+            </div>
+          </div>
+
+          <!-- 4. Smart Learning System (Flashcards) -->
+          <div class="feature-scene" data-scene="flash">
+            <div class="feat-ui flash-stage">
+              <div class="flash-dots">
+                <div class="flash-dot on"></div>
+                <div class="flash-dot on"></div>
+                <div class="flash-dot on"></div>
+                <div class="flash-dot"></div>
+                <div class="flash-dot"></div>
+              </div>
+              <div class="flash-badge">+12 XP</div>
+              <div class="flash-stack">
+                <div class="flash-card back" style="font-size:22px;font-family:'DM Sans',sans-serif;color:#3B6D11;">hello</div>
+                <div class="flash-card front">bonjour</div>
+              </div>
+              <div class="flash-progress"><div class="flash-progress-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- 5. Immersive Content -->
+          <div class="feature-scene" data-scene="video">
+            <div class="feat-ui video-stage">
+              <div class="video-frame">
+                <div class="video-glow"></div>
+                <div class="video-scene-lines">
+                  <div class="v-line" style="animation-duration:4s;animation-delay:0s;"></div>
+                </div>
+              </div>
+              <div class="video-tap-ring"></div>
+              <div class="word-popup">Tap: <strong>"curious"</strong><br><span style="font-size:11px;color:#66755c;">eager to know or learn something</span></div>
+              <div class="subtitle">I was <strong style="color:#3B6D11;">curious</strong> about the answer.</div>
+              <div class="video-playhead"><div class="video-playhead-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- 6. Advanced Input -->
+          <div class="feature-scene" data-scene="book">
+            <div class="feat-ui book-stage">
+              <div class="book-page">
+                <div class="book-cursor"></div>
+                <p style="font-size:14px;color:#4a5a3e;line-height:1.7;">The word <span class="book-word">horizon</span> describes where sky meets earth, a boundary full of possibility…</p>
+                <div class="book-text-lines">
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                  <div class="book-line"></div>
+                </div>
+                <div class="book-card">
+                  <div style="font-size:12px;font-weight:700;color:#3B6D11;margin-bottom:4px;">horizon</div>
+                  <div style="font-size:11px;color:#66755c;line-height:1.5;">the line where earth and sky appear to meet</div>
+                  <div style="font-size:10px;color:#a0b090;margin-top:4px;">noun · Greek: horizōn</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7. Micro Learning -->
+          <div class="feature-scene" data-scene="micro">
+            <div class="feat-ui micro-stage">
+              <div class="micro-confetti">
+                <div class="mc" style="background:#7bbc33;left:30%;top:0;--dur:3.2s;--dl:0.1s;"></div>
+                <div class="mc" style="background:#3B6D11;left:55%;top:0;--dur:2.8s;--dl:0.5s;"></div>
+                <div class="mc" style="background:#c0dd97;left:70%;top:0;--dur:3.5s;--dl:0.2s;"></div>
+                <div class="mc" style="background:#5f9d22;left:20%;top:0;--dur:2.9s;--dl:0.8s;"></div>
+                <div class="mc" style="background:#7bbc33;left:80%;top:0;--dur:3.1s;--dl:0.4s;"></div>
+              </div>
+              <div class="micro-xp">+50 XP 🌟</div>
+              <div class="micro-ring">
+                <svg class="micro-ring-svg" viewBox="0 0 180 180">
+                  <defs>
+                    <linearGradient id="micro-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#7bbc33"/>
+                      <stop offset="100%" stop-color="#3B6D11"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="micro-ring-track" cx="90" cy="90" r="80"/>
+                  <circle class="micro-ring-fill" cx="90" cy="90" r="80"/>
+                </svg>
+                <div class="micro-core">
+                  <div class="micro-time">5:00</div>
+                  <div class="micro-streak"><span class="micro-fire">🔥</span> 14-day streak</div>
+                </div>
+              </div>
+              <div class="micro-chips">
+                <div class="micro-chip" style="background:#eaf3de;color:#3B6D11;border-color:#c0dd97;--d:0.3s;--dl:0.5s;">✓ Vocab</div>
+                <div class="micro-chip" style="background:#eaf3de;color:#3B6D11;border-color:#c0dd97;--d:0.3s;--dl:0.8s;">✓ Speaking</div>
+                <div class="micro-chip" style="background:#fff7e0;color:#a05c00;border-color:#fcd97a;--d:0.3s;--dl:1.1s;">Quiz →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- SEE LEXI IN ACTION -->
+<section id="inAction" class="action-section">
+  <div class="tag">See Lexi In Action</div>
+  <h2 class="stitle">Fast flow, real results<br><em>in one glance</em></h2>
+  <p class="ssub">Speak, get an instant AI reply, receive a clean correction, and lock in confidence. Quick, clear, and satisfying.</p>
+
+  <div class="action-shell">
+    <div class="action-flow" id="actionFlow" aria-label="Lexi interaction flow">
+      <div class="flow-top-bubble" id="actionFlowTopBubble" aria-hidden="true"></div>
+      <div class="flow-top-stem" id="actionFlowTopStem" aria-hidden="true"></div>
+      <div class="flow-line" id="actionFlowLine" aria-hidden="true"></div>
+      <svg class="flow-svg" id="actionFlowSvg" aria-hidden="true" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="flowBranchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d7efb8" stop-opacity="0.65"></stop>
+            <stop offset="40%" stop-color="#7bbc33" stop-opacity="0.9"></stop>
+            <stop offset="100%" stop-color="#3B6D11" stop-opacity="0.9"></stop>
+          </linearGradient>
+        </defs>
+        <path id="actionFlowTopRoot" class="flow-top-root"></path>
+        <path id="actionFlowRoot" class="flow-root"></path>
+        <path id="actionFlowTrunk" class="flow-trunk"></path>
+        <g id="actionFlowBranches"></g>
+      </svg>
+      <article class="action-step" data-action-step="1">
+        <span class="action-badge">1</span>
+        <h3 class="action-step-title">Speak</h3>
+        <p class="action-step-text">You say what you mean in your own words.</p>
+        <span class="action-arrow">→</span>
+      </article>
+
+      <article class="action-step" data-action-step="2">
+        <span class="action-badge">2</span>
+        <h3 class="action-step-title">AI Responds</h3>
+        <p class="action-step-text">Lexi answers instantly and keeps the flow moving.</p>
+        <span class="action-arrow">→</span>
+      </article>
+
+      <article class="action-step" data-action-step="3">
+        <span class="action-badge">3</span>
+        <h3 class="action-step-title">Correction</h3>
+        <p class="action-step-text">You get a clearer version with better grammar and tone.</p>
+        <span class="action-arrow">→</span>
+      </article>
+
+      <article class="action-step success" data-action-step="4">
+        <span class="action-badge">4</span>
+        <h3 class="action-step-title">Success</h3>
+        <p class="action-step-text">You repeat confidently and sound more natural right away.</p>
+        <span class="action-pulse" aria-hidden="true"></span>
+      </article>
+    </div>
+    <div class="action-cta-row">
+      <a href="#" class="action-cta-btn">try lexi live →</a>
+    </div>
+  </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section id="whoFor" class="audience-section">
+  <div class="tag">Who it's for</div>
+  <h2 class="stitle">Pick your lane,<br><em>we tune the journey</em></h2>
+  <p class="ssub">Choose your profile and see how Lexi reshapes lessons, pace, and practice style for your everyday reality.</p>
+
+  <div class="audience-shell">
+    <div class="audience-flow" id="audienceFlow" aria-hidden="true">
+      <div class="audience-flow-top-bubble" id="audienceFlowTopBubble"></div>
+      <div class="audience-flow-top-stem" id="audienceFlowTopStem"></div>
+      <div class="audience-flow-line" id="audienceFlowLine"></div>
+      <svg class="audience-flow-svg" id="audienceFlowSvg" preserveAspectRatio="none">
+        <path id="audienceFlowTopRoot" class="audience-flow-top-root"></path>
+        <path id="audienceFlowRoot" class="audience-flow-root"></path>
+        <path id="audienceFlowTrunk" class="audience-flow-trunk"></path>
+        <g id="audienceFlowBranches"></g>
+      </svg>
+    </div>
+
+    <div class="audience-tabs" role="tablist" aria-label="Learner profile">
+      <button class="audience-tab on" type="button" data-audience="beginners" role="tab" aria-selected="true">
+        <span class="audience-tab-glow" aria-hidden="true"></span>
+        <span class="audience-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 21v-8"></path>
+            <path d="M12 13c0-3.5 2.8-6.5 6.5-6.5C18.5 10.2 15.5 13 12 13Z"></path>
+            <path d="M12 15c0-3.3-2.6-6-6-6C6 12.3 8.7 15 12 15Z"></path>
+          </svg>
+        </span>
+        <span class="audience-tab-label">Beginners</span>
+        <span class="audience-tab-sub">Start simple and build confidence</span>
+        <span class="audience-tab-dot" aria-hidden="true"></span>
+      </button>
+      <button class="audience-tab" type="button" data-audience="students" role="tab" aria-selected="false">
+        <span class="audience-tab-glow" aria-hidden="true"></span>
+        <span class="audience-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M2 9.5 12 5l10 4.5-10 4.5L2 9.5Z"></path>
+            <path d="M6.5 11.7V15c0 1.7 2.4 3 5.5 3s5.5-1.3 5.5-3v-3.3"></path>
+            <path d="M22 9.5v5"></path>
+          </svg>
+        </span>
+        <span class="audience-tab-label">Students</span>
+        <span class="audience-tab-sub">Exam prep and classroom fluency</span>
+        <span class="audience-tab-dot" aria-hidden="true"></span>
+      </button>
+      <button class="audience-tab" type="button" data-audience="professionals" role="tab" aria-selected="false">
+        <span class="audience-tab-glow" aria-hidden="true"></span>
+        <span class="audience-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="3" y="8" width="18" height="11" rx="2"></rect>
+            <path d="M9 8V6.7C9 5.8 9.8 5 10.7 5h2.6c.9 0 1.7.8 1.7 1.7V8"></path>
+            <path d="M3 12.2h18"></path>
+          </svg>
+        </span>
+        <span class="audience-tab-label">Professionals</span>
+        <span class="audience-tab-sub">Speak clearly at work</span>
+        <span class="audience-tab-dot" aria-hidden="true"></span>
+      </button>
+      <button class="audience-tab" type="button" data-audience="travelers" role="tab" aria-selected="false">
+        <span class="audience-tab-glow" aria-hidden="true"></span>
+        <span class="audience-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M21 4 10.5 14.5"></path>
+            <path d="M21 4 14 21l-3.8-8.2L2 9l19-5Z"></path>
+          </svg>
+        </span>
+        <span class="audience-tab-label">Travelers</span>
+        <span class="audience-tab-sub">Learn useful phrases fast</span>
+        <span class="audience-tab-dot" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div class="audience-stage" id="audienceStage" aria-hidden="true">
+      <svg id="audiencePathSvg" viewBox="0 0 1180 112" preserveAspectRatio="none">
+        <g id="audiencePathGroup"></g>
+      </svg>
+    </div>
+
+    <article class="audience-panel" aria-live="polite">
+      <div class="audience-eyebrow" id="audienceEyebrow">Beginner path</div>
+      <h3 class="audience-title" id="audienceTitle">Start with calm lessons that actually make speaking feel possible</h3>
+      <p class="audience-text" id="audienceText">Lexi breaks everything into small speaking wins so you never feel stuck. You get guided pronunciation, simple grammar in plain language, and short practice loops that make confidence grow day by day.</p>
+      <div class="audience-points" id="audiencePoints"></div>
+      <div class="audience-journey-intro" id="audienceJourneyIntro">
+        <p class="audience-journey-label">Your path</p>
+        <p class="audience-journey-name" id="audienceJourneyName">Beginner path</p>
+      </div>
+      <div class="audience-journey-wrap">
+        <div class="audience-spine-fill" id="audienceSpineFill"></div>
+        <div class="audience-journey-steps" id="audienceJourneySteps"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="stitle">Your next language<br>starts with <em><span class="cta-rotating-language" id="ctaRotatingLanguage">English</span></em></h2>
+  <p class="ssub">Join 2 million learners already speaking the world with Lexi. Free forever, no credit card needed.</p>
+  <a href="#" class="btn-white" data-nav-index="1"><span class="cta-btn-text" id="ctaBtnText">Begin Your Journey</span> →</a>
+</section>
+
+<div class="contact-block reveal">
+  <div class="contact-panel">
+    <div class="contact-text">
+      <h3>Start free today</h3>
+      <p>Have questions before you begin? Reach out and our team will help you choose the right language track and weekly plan.</p>
+    </div>
+    <a href="#" class="btn-primary">Contact Us</a>
+  </div>
+</div>
+
+</section>
+
+<!-- =================== LEARNS PAGE =================== -->
+<section id="learnsPage" class="page">
+<div class="learns-wrap">
+  <div class="learns-top">
+    <div class="learns-copy">
+      <div class="tag">Learns</div>
+      <h2 class="stitle">Choose a language<br><em>and begin today</em></h2>
+      <p class="ssub">Browse the world by country, region, and language fit. Start with the best match for your goals.</p>
+    </div>
+  </div>
+  <div class="learns-map-shell">
+    <div class="learns-map-wrap">
+      <div class="learns-map-canvas" id="worldMap"></div>
+      <aside class="learns-map-panel" id="mapLangPanel" aria-live="polite">
+        <div class="learns-map-region" id="mapRegionLabel">Region</div>
+        <h3 class="learns-map-title" id="mapRegionTitle">Select a country</h3>
+        <div class="learns-map-selected" id="mapSelectedLanguage">Pick a language to continue</div>
+        <ul class="learns-map-list" id="mapLanguageList"></ul>
+        <button class="learns-map-start" id="mapStartBtn" type="button">Start Learning →</button>
+      </aside>
+      <div class="learns-map-hint">Click any country to see matching languages</div>
+    </div>
+  </div>
+  <div class="learns-grid reveal" id="langsGrid"></div>
+</div>
+</section>
+</main>
+
+<footer>
+  <div class="flogo">le<span>xi</span></div>
+  <ul class="flinks">
+    <li><a href="#">About</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Contact</a></li><li><a href="#">Blog</a></li>
+  </ul>
+  <div class="fcopy">© 2026 Lexi. All rights reserved.</div>
+</footer>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ===== LANG DATA ===== */
+  const langs = [
+    { flag:'🇬🇧', name:'English', sub:'Global Core · International communication and internet default',
+      fact:'English supports global study, work, and travel. It is the most practical first language for broad opportunities across many countries.',
+      tags:['Global Core','Work','Academic'], time:'~3 months to conversational' },
+    { flag:'🇪🇸', name:'Spanish', sub:'Global Core · High utility across Europe and the Americas',
+      fact:'Spanish is spoken across 20+ countries and is one of the fastest high-impact languages to apply in real life conversations.',
+      tags:['Global Core','Travel','Business'], time:'~4 months to conversational' },
+    { flag:'🇫🇷', name:'French', sub:'Global Core · Diplomacy, travel, and international institutions',
+      fact:'French is widely used in global organizations and across multiple continents, making it strong for career and mobility goals.',
+      tags:['Global Core','Diplomacy','Culture'], time:'~4 months to conversational' },
+    { flag:'🇨🇳', name:'Mandarin Chinese', sub:'Global Core · Strategic language for business and trade',
+      fact:'Mandarin opens doors in one of the largest economic ecosystems and is valuable for long-term international career growth.',
+      tags:['Global Core','Business','Strategy'], time:'~8 months to conversational' },
+    { flag:'🇸🇦', name:'Arabic', sub:'Global Core · High regional reach across the Middle East and North Africa',
+      fact:'Arabic is influential in diplomacy, trade, and regional partnerships, with strong value in policy and international development.',
+      tags:['Global Core','Regional Reach','Diplomacy'], time:'~8 months to conversational' },
+
+    { flag:'🇩🇪', name:'German', sub:'Career & Opportunity · Engineering, research, and industry',
+      fact:'German is highly useful for technology, manufacturing, and academic pathways across central Europe.',
+      tags:['Career','Engineering','Industry'], time:'~5 months to conversational' },
+    { flag:'🇯🇵', name:'Japanese', sub:'Career & Opportunity · Innovation, business, and media',
+      fact:'Japanese supports opportunities in technology, design, media, and cross-border partnerships with Japan.',
+      tags:['Career','Innovation','Culture'], time:'~7 months to conversational' },
+    { flag:'🇰🇷', name:'Korean', sub:'Career & Opportunity · Tech, entertainment, and global culture',
+      fact:'Korean is increasingly valuable for digital industries and cultural markets with strong global influence.',
+      tags:['Career','Tech','Media'], time:'~6 months to conversational' },
+    { flag:'🇵🇹', name:'Portuguese (Portugal)', sub:'Career & Opportunity · European mobility and Lusophone markets',
+      fact:'Portuguese connects you to Portugal and wider Portuguese-speaking opportunities in business and travel.',
+      tags:['Career','Europe','Travel'], time:'~4 months to conversational' },
+    { flag:'🇳🇱', name:'Dutch', sub:'Career & Opportunity · Strong for Benelux work and study routes',
+      fact:'Dutch helps with integration in Dutch-speaking regions and gives practical access to local professional contexts.',
+      tags:['Career','Europe','Study'], time:'~4 months to conversational' },
+
+    { flag:'🇹🇷', name:'Turkish', sub:'Strategic / Regional Power · Bridge language across key regions',
+      fact:'Turkish is valuable for regional trade, travel, and cross-cultural communication between Europe and Asia.',
+      tags:['Strategic','Regional Power','Trade'], time:'~5 months to conversational' },
+    { flag:'🇷🇺', name:'Russian', sub:'Strategic / Regional Power · Broad reach across Eurasian contexts',
+      fact:'Russian can support regional mobility and access to large knowledge and cultural spaces.',
+      tags:['Strategic','Regional Reach','Culture'], time:'~6 months to conversational' },
+    { flag:'🇰🇪', name:'Swahili', sub:'Strategic / Regional Power · East African communication and growth',
+      fact:'Swahili is a practical language for East African travel, collaboration, and community engagement.',
+      tags:['Strategic','Africa','Regional Mobility'], time:'~4 months to conversational' },
+
+    { flag:'🇮🇹', name:'Italian', sub:'Culture / Travel · Lifestyle, heritage, and real-life immersion',
+      fact:'Italian is ideal for travelers and culture-focused learners interested in art, history, and everyday conversation.',
+      tags:['Culture','Travel','Lifestyle'], time:'~4 months to conversational' },
+    { flag:'🇳🇴', name:'Norwegian', sub:'Culture / Travel · Nordic integration and local confidence',
+      fact:'Norwegian can accelerate settlement and social confidence for work or study in Norway.',
+      tags:['Culture','Travel','Nordic'], time:'~4 months to conversational' },
+
+    { flag:'🇳🇬', name:'Yoruba', sub:'Local Edge · West African heritage and community identity',
+      fact:'Yoruba strengthens cultural connection, family communication, and local relevance with real social depth.',
+      tags:['Local Edge','Heritage','Nigeria'], time:'~5 months to conversational' },
+    { flag:'🇳🇬', name:'Igbo', sub:'Local Edge · Southeast Nigerian identity and expression',
+      fact:'Igbo helps preserve cultural roots while building practical fluency for community and daily life use.',
+      tags:['Local Edge','Heritage','Nigeria'], time:'~5 months to conversational' },
+  ];
+
+  /* ===== BUILD LANG CARDS ===== */
+  const grid = document.getElementById('langsGrid');
+  const languageCardLookup = new Map();
+  let openCard = null;
+  langs.forEach((l, idx) => {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div class="lang-card${idx===0?' on':''}">
+        <div class="lang-flag">${l.flag}</div>
+        <div class="lang-info">
+          <div class="lang-name">${l.name}</div>
+          <div class="lang-sub">${l.sub}</div>
+        </div>
+        <div class="lang-arrow"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg></div>
+      </div>
+      <div class="lang-expand${idx===0?' open':''}">
+        <div class="lang-expand-inner">
+          <div class="lang-expand-top">
+            <div class="lang-expand-flag">${l.flag}</div>
+            <div class="lang-expand-body">
+              <div class="lang-expand-title">About ${l.name}</div>
+              <div class="lang-expand-fact">${l.fact}</div>
+            </div>
+          </div>
+          <div class="lang-expand-tags">${l.tags.map(t=>`<span class="lang-expand-tag">${t}</span>`).join('')}</div>
+          <div class="lang-expand-footer">
+            <span class="lang-expand-timeline">${l.time}</span>
+            <button class="lang-start">Start ${l.name} →</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const card = wrap.querySelector('.lang-card');
+    const expand = wrap.querySelector('.lang-expand');
+    if (idx === 0) openCard = { card, expand };
+    languageCardLookup.set(l.name.toLowerCase(), { card, expand, wrap });
+    card.addEventListener('click', () => {
+      if (openCard && openCard.card !== card) {
+        openCard.card.classList.remove('on');
+        openCard.expand.classList.remove('open');
+      }
+      const isOpen = card.classList.contains('on');
+      card.classList.toggle('on', !isOpen);
+      expand.classList.toggle('open', !isOpen);
+      openCard = isOpen ? null : { card, expand };
+    });
+    grid.appendChild(wrap);
+  });
+
+  const analyticsGrid = document.getElementById('analyticsGrid');
+  const analyticsStats = document.getElementById('analyticsStats');
+  if (analyticsGrid || analyticsStats) {
+    const analyticsNames = ['English', 'Spanish', 'French', 'Mandarin Chinese', 'Arabic', 'German', 'Swahili', 'Japanese'];
+    const analyticsLanguages = analyticsNames
+      .map((name) => langs.find((l) => l.name === name))
+      .filter(Boolean);
+
+    if (analyticsStats) {
+      const categoryCount = new Set(langs.map((l) => l.tags[0])).size;
+      const topPickCount = analyticsLanguages.length;
+      const useCaseCount = new Set(langs.flatMap((l) => l.tags.slice(1))).size;
+      analyticsStats.innerHTML = [
+        { value: String(langs.length), label: 'Languages tracked' },
+        { value: String(categoryCount), label: 'Category lanes' },
+        { value: String(topPickCount), label: 'Featured picks' }
+      ].map((item) => `
+        <div class="analytics-stat">
+          <strong>${item.value}</strong>
+          <span>${item.label}</span>
+        </div>
+      `).join('');
+    }
+
+    if (analyticsGrid) {
+      analyticsGrid.innerHTML = analyticsLanguages.map((language, index) => `
+        <article class="analytics-card${index === 0 ? ' featured' : ''}">
+          <div class="analytics-card-top">
+            <div class="analytics-flag" aria-hidden="true">${language.flag}</div>
+            <div>
+              <div class="analytics-title">${language.name}</div>
+              <div class="analytics-sub">${language.sub}</div>
+            </div>
+          </div>
+          <p class="analytics-copy">${language.fact}</p>
+          <div class="analytics-meta">
+            ${language.tags.slice(0, 2).map((tag) => `<span class="analytics-pill">${tag}</span>`).join('')}
+            <span class="analytics-pill">${language.time}</span>
+          </div>
+        </article>
+      `).join('');
+    }
+  }
+
+  /* ===== LEARNS MAP ===== */
+  const mapContainer = document.getElementById('worldMap');
+  const mapPanel = document.getElementById('mapLangPanel');
+  const mapRegionLabel = document.getElementById('mapRegionLabel');
+  const mapRegionTitle = document.getElementById('mapRegionTitle');
+  const mapSelectedLanguage = document.getElementById('mapSelectedLanguage');
+  const mapLanguageList = document.getElementById('mapLanguageList');
+  const mapStartBtn = document.getElementById('mapStartBtn');
+  const learnsPage = document.getElementById('learnsPage');
+  const regionNameMap = {
+    NG: 'Nigeria', KE: 'Kenya', TZ: 'Tanzania', FR: 'France', DE: 'Germany', NO: 'Norway', IT: 'Italy', CN: 'China', ES: 'Spain', PT: 'Portugal', SA: 'Saudi Arabia', TR: 'Turkey', RU: 'Russia', KR: 'South Korea', JP: 'Japan', NL: 'Netherlands', GB: 'United Kingdom', US: 'United States'
+  };
+  const regionZoneMap = {
+    NG: 'africa', KE: 'africa', TZ: 'africa', FR: 'europe', DE: 'europe', NO: 'europe', IT: 'europe', ES: 'europe', PT: 'europe', NL: 'europe', GB: 'europe', RU: 'europe', CN: 'asia', JP: 'asia', KR: 'asia', SA: 'middleEast', TR: 'middleEast', US: 'americas'
+  };
+  const regionLanguageMap = {
+    NG: [
+      { name: 'Yoruba', reason: 'Local Edge · West African heritage and community identity', time: '~5 months to conversational', tag: 'Heritage' },
+      { name: 'Igbo', reason: 'Local Edge · Southeast Nigerian identity and expression', time: '~5 months to conversational', tag: 'Heritage' },
+      { name: 'English', reason: 'Global Core · International communication and study', time: '~3 months to conversational', tag: 'Global' }
+    ],
+    KE: [
+      { name: 'Swahili', reason: 'Strategic / Regional Power · East African communication and growth', time: '~4 months to conversational', tag: 'Regional' },
+      { name: 'English', reason: 'Global Core · Broad study and work utility', time: '~3 months to conversational', tag: 'Global' }
+    ],
+    TZ: [
+      { name: 'Swahili', reason: 'Strategic / Regional Power · East African communication and growth', time: '~4 months to conversational', tag: 'Regional' },
+      { name: 'English', reason: 'Global Core · Travel and study utility', time: '~3 months to conversational', tag: 'Global' }
+    ],
+    FR: [{ name: 'French', reason: 'Global Core · Diplomacy, travel, and international institutions', time: '~4 months to conversational', tag: 'Core' }],
+    DE: [{ name: 'German', reason: 'Career & Opportunity · Engineering, research, and industry', time: '~5 months to conversational', tag: 'Career' }],
+    NO: [{ name: 'Norwegian', reason: 'Culture / Travel · Nordic integration and local confidence', time: '~4 months to conversational', tag: 'Culture' }],
+    IT: [{ name: 'Italian', reason: 'Culture / Travel · Lifestyle, heritage, and immersion', time: '~4 months to conversational', tag: 'Culture' }],
+    CN: [{ name: 'Mandarin Chinese', reason: 'Global Core · Strategic language for business and trade', time: '~8 months to conversational', tag: 'Strategy' }],
+    ES: [{ name: 'Spanish', reason: 'Global Core · High utility across Europe and the Americas', time: '~4 months to conversational', tag: 'Core' }],
+    PT: [{ name: 'Portuguese (Portugal)', reason: 'Career & Opportunity · European mobility and Lusophone markets', time: '~4 months to conversational', tag: 'Career' }],
+    SA: [{ name: 'Arabic', reason: 'Global Core · High regional reach and diplomacy', time: '~8 months to conversational', tag: 'Diplomacy' }],
+    TR: [{ name: 'Turkish', reason: 'Strategic / Regional Power · Bridge language across key regions', time: '~5 months to conversational', tag: 'Strategic' }],
+    RU: [{ name: 'Russian', reason: 'Strategic / Regional Power · Broad reach across Eurasian contexts', time: '~6 months to conversational', tag: 'Strategic' }],
+    KR: [{ name: 'Korean', reason: 'Career & Opportunity · Tech, entertainment, and global culture', time: '~6 months to conversational', tag: 'Career' }],
+    JP: [{ name: 'Japanese', reason: 'Career & Opportunity · Innovation, business, and media', time: '~7 months to conversational', tag: 'Career' }],
+    NL: [{ name: 'Dutch', reason: 'Career & Opportunity · Strong for Benelux work and study routes', time: '~4 months to conversational', tag: 'Career' }],
+    GB: [{ name: 'English', reason: 'Global Core · Worldwide communication and study', time: '~3 months to conversational', tag: 'Global' }],
+    US: [{ name: 'English', reason: 'Global Core · International communication and internet default', time: '~3 months to conversational', tag: 'Global' }]
+  };
+  const regionFallbackMap = {
+    africa: [
+      { name: 'English', reason: 'Global Core · Widely useful across the continent', time: '~3 months to conversational', tag: 'Global' },
+      { name: 'French', reason: 'Global Core · Useful in many West and Central African contexts', time: '~4 months to conversational', tag: 'Global' },
+      { name: 'Swahili', reason: 'Strategic / Regional Power · Practical East African connector', time: '~4 months to conversational', tag: 'Regional' }
+    ],
+    europe: [
+      { name: 'English', reason: 'Global Core · Easiest cross-border default', time: '~3 months to conversational', tag: 'Global' },
+      { name: 'Spanish', reason: 'Global Core · Broad utility for travel and work', time: '~4 months to conversational', tag: 'Global' }
+    ],
+    asia: [
+      { name: 'English', reason: 'Global Core · Shared bridge language for study and business', time: '~3 months to conversational', tag: 'Global' },
+      { name: 'Mandarin Chinese', reason: 'Global Core · Strategic for trade and long-term growth', time: '~8 months to conversational', tag: 'Strategy' }
+    ],
+    middleEast: [
+      { name: 'Arabic', reason: 'Global Core · Regional reach across the Middle East and North Africa', time: '~8 months to conversational', tag: 'Core' },
+      { name: 'English', reason: 'Global Core · Useful for business and travel', time: '~3 months to conversational', tag: 'Global' }
+    ],
+    americas: [
+      { name: 'Spanish', reason: 'Global Core · High utility across North and South America', time: '~4 months to conversational', tag: 'Global' },
+      { name: 'English', reason: 'Global Core · Default for study, work, and travel', time: '~3 months to conversational', tag: 'Global' }
+    ],
+    global: [
+      { name: 'English', reason: 'Global Core · Safe default for international communication', time: '~3 months to conversational', tag: 'Global' }
+    ]
+  };
+  let selectedMapLanguages = [];
+  let selectedMapRegion = null;
+  let selectedMapLanguage = null;
+  let mapInstance = null;
+  let mapReady = false;
+
+  const languageMetaLookup = new Map(langs.map((language) => [language.name, language]));
+  const getLanguageLevel = (timeText) => {
+    const months = Number((timeText.match(/\d+/) || [8])[0]);
+    if (months <= 4) return 'Beginner friendly';
+    if (months <= 6) return 'Intermediate';
+    return 'Advanced';
+  };
+
+  const focusLanguageCard = (languageName) => {
+    const target = languageCardLookup.get(languageName.toLowerCase());
+    if (!target) return;
+
+    if (openCard && openCard.card !== target.card) {
+      openCard.card.classList.remove('on');
+      openCard.expand.classList.remove('open');
+    }
+
+    target.card.classList.add('on');
+    target.expand.classList.add('open');
+    openCard = { card: target.card, expand: target.expand };
+    target.wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const updateSelectedRegion = (countryCode) => {
+    if (selectedMapRegion && selectedMapRegion !== countryCode) {
+      const prevRegion = document.querySelector(`[data-code="${selectedMapRegion}"]`);
+      if (prevRegion) prevRegion.classList.remove('selected-region');
+    }
+
+    selectedMapRegion = countryCode;
+
+    const regionEl = document.querySelector(`[data-code="${countryCode}"]`);
+    if (regionEl) regionEl.classList.add('selected-region');
+  };
+
+  const getRegionPayload = (countryCode) => {
+    const languages = regionLanguageMap[countryCode];
+    if (languages) {
+      return {
+        title: regionNameMap[countryCode] || countryCode,
+        regionLabel: 'Country',
+        languages,
+        fallback: false
+      };
+    }
+
+    const zone = regionZoneMap[countryCode] || 'global';
+    return {
+      title: regionNameMap[countryCode] || countryCode,
+      regionLabel: 'Suggested',
+      languages: regionFallbackMap[zone] || regionFallbackMap.global,
+      fallback: true
+    };
+  };
+
+  const updateMapSelectionUI = () => {
+    if (!mapLanguageList) return;
+    const buttons = mapLanguageList.querySelectorAll('.learns-map-language-card');
+    buttons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.language === selectedMapLanguage);
+    });
+
+    if (mapSelectedLanguage) {
+      mapSelectedLanguage.textContent = selectedMapLanguage
+        ? `Selected language: ${selectedMapLanguage}`
+        : 'Pick a language to continue';
+    }
+
+    if (mapStartBtn) {
+      mapStartBtn.textContent = selectedMapLanguage ? `Start ${selectedMapLanguage} →` : 'Start Learning →';
+    }
+  };
+
+  const renderMapLanguages = (countryCode) => {
+    if (!mapLanguageList) return;
+
+    const payload = getRegionPayload(countryCode);
+    selectedMapLanguages = payload.languages.map((language) => language.name);
+    selectedMapLanguage = selectedMapLanguages[0] || null;
+
+    mapRegionLabel.textContent = payload.regionLabel;
+    mapRegionTitle.textContent = payload.title;
+    if (mapSelectedLanguage) {
+      mapSelectedLanguage.textContent = payload.fallback
+        ? 'No direct match found. Using regional suggestions.'
+        : `Top pick: ${selectedMapLanguage || 'none'}`;
+    }
+
+    mapLanguageList.innerHTML = payload.languages.map((language, index) => {
+      const meta = languageMetaLookup.get(language.name);
+      const flag = meta ? meta.flag : '🌍';
+      const level = getLanguageLevel(language.time);
+      return `
+      <li>
+        <button type="button" class="learns-map-language-card${index === 0 ? ' active' : ''}" data-language="${language.name}">
+          <div class="learns-map-language-title">${flag} ${language.name}</div>
+          <div class="learns-map-language-sub">${language.reason}</div>
+          <div class="learns-map-language-pills">
+            <span class="learns-map-language-pill">${language.tag}</span>
+            <span class="learns-map-language-pill">${level}</span>
+            <span class="learns-map-language-pill">${language.time}</span>
+          </div>
+        </button>
+      </li>
+    `;
+    }).join('');
+
+    mapLanguageList.querySelectorAll('.learns-map-language-card').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedMapLanguage = button.dataset.language;
+        updateMapSelectionUI();
+      });
+    });
+
+    updateMapSelectionUI();
+    mapPanel.classList.add('show');
+    updateSelectedRegion(countryCode);
+  };
+
+  const focusSelectedMapLanguage = () => {
+    if (!selectedMapLanguage) return;
+    focusLanguageCard(selectedMapLanguage);
+  };
+
+  const updateMapPanel = (countryCode) => {
+    renderMapLanguages(countryCode);
+  };
+
+  if (mapStartBtn) {
+    mapStartBtn.addEventListener('click', focusSelectedMapLanguage);
+  }
+
+  const renderMapFallback = () => {
+    if (!mapContainer) return;
+
+    const fallbackRegions = [
+      ['NG', 'Nigeria'],
+      ['KE', 'Kenya'],
+      ['FR', 'France'],
+      ['DE', 'Germany'],
+      ['CN', 'China'],
+      ['ES', 'Spain'],
+      ['SA', 'Saudi Arabia'],
+      ['US', 'United States']
+    ];
+
+    mapContainer.innerHTML = `
+      <div class="learns-map-fallback">
+        <div class="learns-map-fallback-title">Regional explorer</div>
+        <div class="learns-map-fallback-grid">
+          ${fallbackRegions.map(([code, name]) => `
+            <button type="button" class="learns-map-fallback-btn" data-country-code="${code}">
+              <span>${name}</span>
+              <strong>${(regionLanguageMap[code] || regionFallbackMap[regionZoneMap[code] || 'global']).length} languages</strong>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    mapContainer.querySelectorAll('[data-country-code]').forEach((button) => {
+      button.addEventListener('click', () => {
+        updateMapPanel(button.dataset.countryCode);
+      });
+    });
+  };
+
+  const ensureWorldMapReady = () => {
+    if (!mapContainer) return;
+
+    if (typeof jsVectorMap !== 'function') {
+      renderMapFallback();
+      return;
+    }
+
+    if (!mapReady) {
+      try {
+        mapInstance = new jsVectorMap({
+          selector: '#worldMap',
+          map: 'world',
+          zoomButtons: false,
+          zoomOnScroll: false,
+          selectedRegions: [],
+          regionStyle: {
+            initial: { fill: '#e9f3dc', stroke: '#c6ddaa', strokeWidth: 0.8 },
+            hover: { fill: '#c9e49d', cursor: 'pointer' },
+            selected: { fill: '#7bbc33' }
+          },
+          backgroundColor: 'transparent',
+          onRegionClick: (_event, code) => {
+            updateMapPanel(code);
+          }
+        });
+        mapReady = true;
+      } catch (error) {
+        renderMapFallback();
+      }
+      return;
+    }
+
+    if (mapInstance && typeof mapInstance.updateSize === 'function') {
+      mapInstance.updateSize();
+    }
+  };
+
+  if (learnsPage && learnsPage.classList.contains('active')) {
+    requestAnimationFrame(() => ensureWorldMapReady());
+  }
+
+  const heroPanel = document.querySelector('.ad-hero');
+  const cardStack = document.querySelector('.card-stack');
+  const heroBrand = document.querySelector('.ad-brand');
+  const heroTitle = document.querySelector('.ad-title');
+  const frontCard = document.querySelector('.card-front');
+
+  if (heroPanel && cardStack && frontCard) {
+    document.body.classList.add('hero-flat');
+    if (heroBrand) heroBrand.style.display = 'none';
+    if (heroTitle) heroTitle.style.display = 'none';
+    frontCard.style.transform = 'none';
+    frontCard.style.borderRadius = '0';
+    frontCard.style.boxShadow = 'none';
+  }
+
+  const heroProcessProgress = document.getElementById('heroProcessProgress');
+  if (heroProcessProgress) {
+    const heroProcessConnector = heroProcessProgress.parentElement;
+    const syncHeroConnectorHeight = () => {
+      const stepsWrap = document.getElementById('stepsWrap');
+      const actionSection = document.getElementById('inAction');
+      if (!heroProcessConnector || !stepsWrap || !actionSection) return;
+
+      heroProcessConnector.style.left = '0px';
+      const connectorRect = heroProcessConnector.getBoundingClientRect();
+      const stepsRect = stepsWrap.getBoundingClientRect();
+
+      // Keep the connector aligned to the learning-process spine and extend it into the action section.
+      const targetX = Math.round(stepsRect.left + 17);
+      const connectorCenterX = Math.round(connectorRect.left + (connectorRect.width / 2));
+      heroProcessConnector.style.left = (targetX - connectorCenterX) + 'px';
+
+      const alignedRect = heroProcessConnector.getBoundingClientRect();
+      const actionFlow = document.getElementById('actionFlow');
+      const actionFlowRect = actionFlow ? actionFlow.getBoundingClientRect() : actionSection.getBoundingClientRect();
+      const targetY = Math.round(actionFlowRect.top - 20);
+      const rawDistance = Math.round(targetY - alignedRect.top + 2);
+      const distance = Math.max(280, Math.min(1200, rawDistance));
+      heroProcessConnector.style.height = distance + 'px';
+      ScrollTrigger.refresh();
+    };
+
+    window.addEventListener('load', syncHeroConnectorHeight, { once: true });
+    window.addEventListener('resize', syncHeroConnectorHeight);
+    syncHeroConnectorHeight();
+
+    gsap.to(heroProcessProgress, {
+      scaleY: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#home',
+        start: 'top top',
+        endTrigger: '#inAction',
+        end: 'top 78%',
+        scrub: true
+      }
+    });
+  }
+
+  /* ===== SCROLL: LINE + LAPTOP SYNC ===== */
+  const steps = [
+    document.getElementById('st1'), document.getElementById('st2'),
+    document.getElementById('st3'), document.getElementById('st4'),
+    document.getElementById('st5')
+  ];
+  
+  function activateStep(i) {
+    steps.forEach((s, j) => {
+      s.classList.remove('active','done');
+      if (j < i) s.classList.add('done');
+      else if (j === i) s.classList.add('active');
+    });
+    const pct = Math.min(((i + 1) / steps.length) * 100, 100);
+    gsap.to('#stepsFill', { height: pct + '%', duration: 0.9, ease: 'power2.inOut' });
+  }
+  
+  steps.forEach((step, i) => {
+    ScrollTrigger.create({
+      trigger: step, start: 'top 62%',
+      onEnter: () => activateStep(i),
+      onLeaveBack: () => {
+        if (i > 0) activateStep(i - 1);
+        else { steps[0].classList.remove('active','done'); gsap.to('#stepsFill', { height:'0%', duration:0.4 }); }
+      }
+    });
+  });
+
+  /* ===== PAGE NAV ===== */
+  const navTargets = ['homePage','learnsPage'];
+  const journeyTexts = ['Begin Your Journey','Back to Home'];
+  let navIndex = 0;
+  const prevBtn = document.getElementById('nav-prev');
+  const nextBtn = document.getElementById('nav-next');
+  const jBtn = document.querySelector('#journeyButton .text');
+  const pages = document.querySelectorAll('.page');
+  function updateNav() {
+    prevBtn.classList.toggle('disabled', navIndex === 0);
+    nextBtn.classList.toggle('disabled', navIndex === navTargets.length - 1);
+    if (jBtn) jBtn.textContent = journeyTexts[navIndex] || journeyTexts[0];
+  }
+  function goNav(i) {
+    if (i < 0 || i >= navTargets.length) return;
+    navIndex = i;
+    pages.forEach(p => p.classList.remove('active'));
+    document.getElementById(navTargets[navIndex]).classList.add('active');
+    window.scrollTo({ top:0, behavior:'smooth' });
+    updateNav();
+    ScrollTrigger.refresh();
+
+    if (navTargets[navIndex] === 'learnsPage') {
+      requestAnimationFrame(() => ensureWorldMapReady());
+    }
+  }
+  prevBtn.addEventListener('click', () => goNav(navIndex - 1));
+  nextBtn.addEventListener('click', () => goNav(navIndex + 1));
+  document.getElementById('journeyButton').addEventListener('click', () => goNav(navIndex === 0 ? 1 : 0));
+  document.querySelectorAll('[data-nav-index]').forEach(el => {
+    el.addEventListener('click', (e) => { e.preventDefault(); goNav(Number(el.dataset.navIndex)); });
+  });
+  updateNav();
+
+  // Performance helpers: throttle timers and pause animation work when hidden/offscreen.
+  const addManagedInterval = (fn, delay, shouldRun = () => true) => setInterval(() => {
+    if (document.hidden) return;
+    if (!shouldRun()) return;
+    fn();
+  }, delay);
+
+  const syncVisibilityPause = () => {
+    gsap.globalTimeline.paused(document.hidden);
+  };
+
+  document.addEventListener('visibilitychange', syncVisibilityPause);
+  syncVisibilityPause();
+
+  const animScopes = [
+    document.getElementById('home'),
+    document.getElementById('features'),
+    document.getElementById('inAction'),
+    document.getElementById('learnsPage')
+  ].filter(Boolean);
+
+  if ('IntersectionObserver' in window && animScopes.length) {
+    const sectionAnimObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle('anim-active', entry.isIntersecting);
+      });
+    }, { threshold: 0.01, rootMargin: '120px 0px 120px 0px' });
+
+    animScopes.forEach((scope) => sectionAnimObserver.observe(scope));
+  } else {
+    animScopes.forEach((scope) => scope.classList.add('anim-active'));
+  }
+
+  /* ===== FEATURE TAGLINE WORD SWAP ===== */
+  const featureGoWord = document.getElementById('featureGoWord');
+  if (featureGoWord) {
+    const goWords = ['go fluent', 'go proficient', 'go confident', 'go natural'];
+    let goWordIndex = 0;
+
+    const featureSection = document.getElementById('features');
+    addManagedInterval(() => {
+      featureGoWord.classList.add('changing');
+      setTimeout(() => {
+        goWordIndex = (goWordIndex + 1) % goWords.length;
+        featureGoWord.textContent = goWords[goWordIndex];
+        featureGoWord.classList.remove('changing');
+      }, 220);
+    }, 5000, () => !featureSection || featureSection.classList.contains('anim-active'));
+  }
+
+  /* ===== CTA LANGUAGE ROTATION ===== */
+  const ctaRotatingLanguage = document.getElementById('ctaRotatingLanguage');
+  const ctaBtnText = document.getElementById('ctaBtnText');
+  if (ctaRotatingLanguage && ctaBtnText) {
+    const ctaLanguages = [
+      { label: 'English', buttonText: 'Begin Your Journey' },
+      { label: 'Spanish', buttonText: 'Comienza tu viaje' },
+      { label: 'French', buttonText: 'Commencez votre voyage' },
+      { label: 'Italian', buttonText: 'Inizia il tuo viaggio' },
+      { label: 'German', buttonText: 'Beginne deine Reise' },
+      { label: 'Portuguese', buttonText: 'Comece sua jornada' },
+      { label: 'Dutch', buttonText: 'Begin je reis' },
+      { label: 'Swahili', buttonText: 'Anza safari yako' },
+      { label: 'Arabic', buttonText: 'Ibtadi rihlatak' },
+      { label: 'Igbo', buttonText: 'Bido njem gi' },
+      { label: 'Yoruba', buttonText: 'Bere irin-ajo re' }
+    ];
+    let ctaLanguageIndex = 0;
+
+    const swapCtaLanguage = () => {
+      ctaRotatingLanguage.classList.add('changing');
+      ctaBtnText.classList.add('changing');
+
+      setTimeout(() => {
+        ctaLanguageIndex = (ctaLanguageIndex + 1) % ctaLanguages.length;
+        const nextLanguage = ctaLanguages[ctaLanguageIndex];
+        ctaRotatingLanguage.textContent = nextLanguage.label;
+        ctaBtnText.textContent = nextLanguage.buttonText;
+        ctaRotatingLanguage.classList.remove('changing');
+        ctaBtnText.classList.remove('changing');
+      }, 170);
+    };
+
+    const ctaSection = document.querySelector('.cta-section');
+    addManagedInterval(swapCtaLanguage, 1200, () => {
+      if (!ctaSection) return true;
+      const rect = ctaSection.getBoundingClientRect();
+      return rect.bottom > 0 && rect.top < window.innerHeight;
+    });
+  }
+
+  /* ===== STICKY FEATURE STORY ===== */
+  const featureItems = Array.from(document.querySelectorAll('.feature-item'));
+  const featureScenes = Array.from(document.querySelectorAll('.feature-scene'));
+
+  if (featureItems.length && featureScenes.length) {
+    let activeFeatureKey = null;
+    let queuedFeatureKey = null;
+    let rafTicket = null;
+    let sceneSwapTween = null;
+    const featureStory = document.getElementById('featureStory');
+    const featureBridgeLine = document.getElementById('featureBridgeLine');
+    const featureBridgeFill = document.getElementById('featureBridgeFill');
+    const featureBridgeMarkers = document.getElementById('featureBridgeMarkers');
+    let featureMarkerNodes = [];
+
+    const getSceneByFeature = (featureKey) => featureScenes.find((scene) => scene.dataset.scene === featureKey) || null;
+
+    const syncFeatureBridgeX = () => {
+      if (!featureStory || !featureBridgeLine || !featureItems.length) return;
+      const sticky = featureStory.querySelector('.feature-sticky');
+      const firstItem = featureItems[0];
+      if (!sticky || !firstItem) return;
+
+      const storyRect = featureStory.getBoundingClientRect();
+      const itemRect = firstItem.getBoundingClientRect();
+      const stickyRect = sticky.getBoundingClientRect();
+      const centerX = ((itemRect.right + stickyRect.left) / 2) - storyRect.left;
+      featureBridgeLine.style.left = `${Math.round(centerX)}px`;
+    };
+
+    const setFeatureBridgeProgress = (featureKey, immediate = false) => {
+      if (!featureBridgeFill) return;
+      const idx = featureItems.findIndex((item) => item.dataset.feature === featureKey);
+      if (idx < 0) return;
+
+      const pct = Math.min(((idx + 1) / featureItems.length) * 100, 100);
+      if (immediate) {
+        gsap.set(featureBridgeFill, { height: pct + '%' });
+      } else {
+        gsap.to(featureBridgeFill, { height: pct + '%', duration: 0.6, ease: 'power2.inOut' });
+      }
+    };
+
+    const buildFeatureMarkers = () => {
+      if (!featureBridgeMarkers) return;
+      featureBridgeMarkers.innerHTML = '';
+      featureMarkerNodes = featureItems.map((item, idx) => {
+        const marker = document.createElement('span');
+        marker.className = 'feature-bridge-marker';
+        marker.dataset.feature = item.dataset.feature;
+        marker.style.top = `${((idx + 0.5) / featureItems.length) * 100}%`;
+        featureBridgeMarkers.appendChild(marker);
+        return marker;
+      });
+    };
+
+    const setFeatureMarkerState = (featureKey) => {
+      if (!featureMarkerNodes.length) return;
+      const activeIdx = featureItems.findIndex((item) => item.dataset.feature === featureKey);
+      if (activeIdx < 0) return;
+
+      featureMarkerNodes.forEach((marker, idx) => {
+        marker.classList.remove('active', 'done');
+        if (idx < activeIdx) marker.classList.add('done');
+        else if (idx === activeIdx) marker.classList.add('active');
+      });
+    };
+
+    const syncActiveItems = (featureKey) => {
+      featureItems.forEach((item) => {
+        item.classList.toggle('active', item.dataset.feature === featureKey);
+      });
+    };
+
+    const setSceneState = (scene, isVisible) => {
+      gsap.set(scene, {
+        autoAlpha: isVisible ? 1 : 0,
+        y: isVisible ? 0 : 14,
+        scale: isVisible ? 1 : 0.985
+      });
+    };
+
+    const swapScene = (featureKey, immediate = false) => {
+      if (!featureKey || featureKey === activeFeatureKey) return;
+
+      const nextScene = getSceneByFeature(featureKey);
+      if (!nextScene) return;
+
+      const currentScene = featureScenes.find((scene) => scene.classList.contains('active')) || null;
+      activeFeatureKey = featureKey;
+      syncActiveItems(featureKey);
+      setFeatureBridgeProgress(featureKey, immediate);
+      setFeatureMarkerState(featureKey);
+
+      if (sceneSwapTween) {
+        sceneSwapTween.kill();
+        sceneSwapTween = null;
+      }
+
+      if (immediate || !currentScene || currentScene === nextScene) {
+        featureScenes.forEach((scene) => {
+          const isTarget = scene === nextScene;
+          scene.classList.toggle('active', isTarget);
+          setSceneState(scene, isTarget);
+        });
+        return;
+      }
+
+      nextScene.classList.add('active');
+      setSceneState(nextScene, true);
+
+      sceneSwapTween = gsap.timeline({ defaults: { overwrite: 'auto' } });
+      sceneSwapTween
+        .to(currentScene, {
+          autoAlpha: 0,
+          y: -12,
+          scale: 0.985,
+          duration: 0.24,
+          ease: 'power1.out'
+        })
+        .fromTo(nextScene,
+          { autoAlpha: 0, y: 16, scale: 0.98 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.48,
+            ease: 'power2.out'
+          },
+          '<0.05'
+        )
+        .add(() => {
+          featureScenes.forEach((scene) => {
+            if (scene !== nextScene) scene.classList.remove('active');
+          });
+        });
+    };
+
+    const queueSwap = (featureKey) => {
+      queuedFeatureKey = featureKey;
+      if (rafTicket) return;
+
+      rafTicket = requestAnimationFrame(() => {
+        swapScene(queuedFeatureKey);
+        queuedFeatureKey = null;
+        rafTicket = null;
+      });
+    };
+
+    const getClosestFeatureKey = () => {
+      const viewportCenter = window.innerHeight * 0.5;
+      let bestItem = featureItems[0];
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      featureItems.forEach((item) => {
+        const rect = item.getBoundingClientRect();
+        const itemCenter = rect.top + (rect.height * 0.5);
+        const distance = Math.abs(itemCenter - viewportCenter);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestItem = item;
+        }
+      });
+
+      return bestItem ? bestItem.dataset.feature : null;
+    };
+
+    buildFeatureMarkers();
+    swapScene(featureItems[0].dataset.feature, true);
+    syncFeatureBridgeX();
+    window.addEventListener('resize', syncFeatureBridgeX);
+
+    featureItems.forEach((item, idx) => {
+      ScrollTrigger.create({
+        trigger: item,
+        start: 'top 60%',
+        end: 'bottom 40%',
+        fastScrollEnd: true,
+        onToggle: (self) => {
+          if (self.isActive) {
+            queueSwap(item.dataset.feature);
+          }
+        }
+      });
+    });
+
+    ScrollTrigger.addEventListener('refresh', () => {
+      const featureKey = getClosestFeatureKey();
+      if (featureKey) swapScene(featureKey, true);
+      syncFeatureBridgeX();
+    });
+  }
+
+  /* ===== SEE LEXI IN ACTION ===== */
+  const actionFlow = document.getElementById('actionFlow');
+  const actionSteps = Array.from(document.querySelectorAll('.action-step'));
+  const actionFlowTopBubble = document.getElementById('actionFlowTopBubble');
+  const actionFlowTopStem = document.getElementById('actionFlowTopStem');
+  const actionFlowLine = document.getElementById('actionFlowLine');
+  const actionFlowSvg = document.getElementById('actionFlowSvg');
+  const actionFlowTopRoot = document.getElementById('actionFlowTopRoot');
+  const actionFlowRoot = document.getElementById('actionFlowRoot');
+  const actionFlowTrunk = document.getElementById('actionFlowTrunk');
+  const actionFlowBranches = document.getElementById('actionFlowBranches');
+
+  if (actionFlow && actionSteps.length && actionFlowTopBubble && actionFlowTopStem && actionFlowLine && actionFlowSvg && actionFlowTopRoot && actionFlowRoot && actionFlowTrunk && actionFlowBranches) {
+    const drawActionFlowPaths = () => {
+      const flowRect = actionFlow.getBoundingClientRect();
+      if (!flowRect.width || !flowRect.height) return;
+      const actionSection = document.getElementById('inAction');
+      const actionHeading = actionSection ? actionSection.querySelector('.stitle') : null;
+
+      const cardPoints = actionSteps.map((step) => {
+        const rect = step.getBoundingClientRect();
+        return {
+          x: Math.round(rect.left - flowRect.left + (rect.width * 0.5)),
+          y: Math.round(rect.top - flowRect.top)
+        };
+      });
+
+      if (cardPoints.length < 2) return;
+
+      const lineY = Math.max(44, Math.round(Math.min(...cardPoints.map((p) => p.y)) - 34));
+      const startX = cardPoints[0].x;
+      const endX = cardPoints[cardPoints.length - 1].x;
+      const rootX = Math.round((startX + endX) / 2);
+      const rootTop = Math.max(58, lineY - 78);
+      const lineWidth = Math.max(24, endX - startX);
+      const headingBottomY = actionHeading ? Math.round(actionHeading.getBoundingClientRect().bottom - flowRect.top + 8) : -70;
+      const rootStartY = Math.min(rootTop - 18, Math.max(-260, headingBottomY));
+
+      actionFlowTopBubble.style.left = `${rootX}px`;
+      actionFlowTopBubble.style.top = `${rootStartY - 9}px`;
+      actionFlowTopStem.style.left = `${rootX}px`;
+      actionFlowTopStem.style.top = `${rootStartY}px`;
+      actionFlowTopStem.style.height = `${Math.max(32, rootTop - rootStartY)}px`;
+      actionFlowTopStem.style.transform = 'translateX(-50%) scaleY(0)';
+
+      actionFlowLine.style.top = `${lineY}px`;
+      actionFlowLine.style.left = `${startX}px`;
+      actionFlowLine.style.width = `${lineWidth}px`;
+
+      actionFlowSvg.setAttribute('viewBox', `0 0 ${Math.round(flowRect.width)} ${Math.round(flowRect.height)}`);
+      actionFlowTopRoot.setAttribute('d', `M ${rootX} ${rootStartY} L ${rootX} ${rootTop}`);
+      actionFlowRoot.setAttribute('d', `M ${rootX} ${rootTop} L ${rootX} ${lineY}`);
+      actionFlowTrunk.setAttribute('d', `M ${startX} ${lineY} L ${endX} ${lineY}`);
+      actionFlowBranches.innerHTML = '';
+
+      cardPoints.forEach((point, idx) => {
+        const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const depth = Math.max(38, point.y - lineY);
+        const spread = (idx - (cardPoints.length - 1) / 2) * 10;
+        const endY = Math.max(lineY + 6, point.y - 12);
+        const cp1Y = lineY + depth * 0.28;
+        const cp2Y = lineY + depth * 0.8;
+        const d = `M ${point.x} ${lineY} C ${point.x + spread} ${cp1Y}, ${point.x - spread} ${cp2Y}, ${point.x} ${endY}`;
+
+        branch.setAttribute('d', d);
+        branch.setAttribute('class', 'flow-branch');
+        actionFlowBranches.appendChild(branch);
+      });
+    };
+
+    const playActionFlow = () => {
+      actionSteps.forEach((s) => s.classList.remove('on'));
+
+      const topRootLen = actionFlowTopRoot.getTotalLength();
+      const rootLen = actionFlowRoot.getTotalLength();
+      const trunkLen = actionFlowTrunk.getTotalLength();
+      gsap.set(actionFlowTopRoot, { strokeDasharray: topRootLen, strokeDashoffset: topRootLen, opacity: 0.5 });
+      gsap.set(actionFlowRoot, { strokeDasharray: rootLen, strokeDashoffset: rootLen, opacity: 0.5 });
+      gsap.set(actionFlowTrunk, { strokeDasharray: trunkLen, strokeDashoffset: trunkLen, opacity: 0.42 });
+      gsap.set(actionFlowLine, { autoAlpha: 0 });
+
+      const branches = Array.from(actionFlowBranches.querySelectorAll('.flow-branch'));
+      branches.forEach((path) => {
+        const len = path.getTotalLength();
+        gsap.set(path, {
+          strokeDasharray: len,
+          strokeDashoffset: len,
+          opacity: 0.4
+        });
+      });
+
+      gsap.set(actionSteps, { autoAlpha: 0, y: 18, scale: 0.985 });
+
+      const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+      tl.to(actionFlowTopStem, {
+        scaleY: 1,
+        duration: 0.42,
+        ease: 'power2.out',
+        transformOrigin: 'top center'
+      });
+
+      tl.to(actionFlowTopRoot, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.46,
+        ease: 'power2.out'
+      });
+
+      tl.to(actionFlowRoot, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.42,
+        ease: 'power2.out'
+      });
+
+      tl.to(actionFlowTrunk, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.56,
+        ease: 'power2.out',
+        onStart: () => {
+          gsap.to(actionFlowLine, { autoAlpha: 1, duration: 0.25, ease: 'power1.out' });
+        }
+      });
+
+      branches.forEach((branch, idx) => {
+        tl.to(branch, {
+          strokeDashoffset: 0,
+          opacity: 1,
+          duration: 0.34,
+          ease: 'power2.out'
+        });
+
+        tl.to(actionSteps[idx], {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.28,
+          ease: 'power2.out',
+          onStart: () => {
+            actionSteps.forEach((s, i) => s.classList.toggle('on', i <= idx));
+          }
+        }, '<0.1');
+      });
+
+      return tl;
+    };
+
+    drawActionFlowPaths();
+    window.addEventListener('resize', drawActionFlowPaths);
+    ScrollTrigger.addEventListener('refresh', drawActionFlowPaths);
+
+    ScrollTrigger.create({
+      trigger: actionFlow,
+      start: 'top 70%',
+      once: true,
+      onEnter: () => playActionFlow()
+    });
+  }
+
+  /* ===== WHO IT'S FOR ===== */
+  const audienceTabs = Array.from(document.querySelectorAll('.audience-tab'));
+  const audienceSection = document.getElementById('whoFor');
+  const audienceFlow = document.getElementById('audienceFlow');
+  const audienceFlowTopBubble = document.getElementById('audienceFlowTopBubble');
+  const audienceFlowTopStem = document.getElementById('audienceFlowTopStem');
+  const audienceFlowLine = document.getElementById('audienceFlowLine');
+  const audienceFlowSvg = document.getElementById('audienceFlowSvg');
+  const audienceFlowTopRoot = document.getElementById('audienceFlowTopRoot');
+  const audienceFlowRoot = document.getElementById('audienceFlowRoot');
+  const audienceFlowTrunk = document.getElementById('audienceFlowTrunk');
+  const audienceFlowBranches = document.getElementById('audienceFlowBranches');
+  const audienceEyebrow = document.getElementById('audienceEyebrow');
+  const audienceTitle = document.getElementById('audienceTitle');
+  const audienceText = document.getElementById('audienceText');
+  const audiencePoints = document.getElementById('audiencePoints');
+  const audienceStage = document.getElementById('audienceStage');
+  const audiencePathGroup = document.getElementById('audiencePathGroup');
+  const audienceJourneyIntro = document.getElementById('audienceJourneyIntro');
+  const audienceJourneyName = document.getElementById('audienceJourneyName');
+  const audienceSpineFill = document.getElementById('audienceSpineFill');
+  const audienceJourneySteps = document.getElementById('audienceJourneySteps');
+
+  if (audienceTabs.length && audienceFlow && audienceFlowTopBubble && audienceFlowTopStem && audienceFlowLine && audienceFlowSvg && audienceFlowTopRoot && audienceFlowRoot && audienceFlowTrunk && audienceFlowBranches && audienceEyebrow && audienceTitle && audienceText && audiencePoints && audienceStage && audiencePathGroup && audienceJourneyIntro && audienceJourneyName && audienceSpineFill && audienceJourneySteps) {
+    const audienceProfiles = {
+      beginners: {
+        accent: '#6DAE34',
+        glow: 'rgba(109,174,52,0.25)',
+        eyebrow: 'Beginner path',
+        journeyName: 'Beginner mode',
+        title: 'Start with calm lessons that actually make speaking feel possible',
+        text: 'Lexi breaks everything into small speaking wins so you never feel stuck. You get guided pronunciation, simple grammar in plain language, and short practice loops that make confidence grow day by day.',
+        points: ['Simple explanations', 'Confidence-first speaking', 'Daily bite-size drills'],
+        journey: [
+          { title: 'Step 1: Set your first goal', code: 'Choose one simple goal, like introducing yourself and talking about your day.' },
+          { title: 'Step 2: Learn survival phrases', code: 'Practice daily greetings, polite questions, and everyday replies you can use immediately.' },
+          { title: 'Step 3: Speak with guided prompts', code: 'Answer short Lexi prompts out loud so you build rhythm without pressure.' },
+          { title: 'Step 4: Get instant correction', code: 'Lexi fixes pronunciation and grammar in real time, then gives a cleaner sentence to repeat.' },
+          { title: 'Step 5: Build confidence with repetition', code: 'Review difficult words each day and complete a short speaking streak to lock progress in.' }
+        ]
+      },
+      students: {
+        accent: '#5E9C2A',
+        glow: 'rgba(94,156,42,0.25)',
+        eyebrow: 'Student mode',
+        journeyName: 'Student mode',
+        title: 'Boost class performance with guided practice before tests and presentations',
+        text: 'From vocab targets to timed speaking prompts, Lexi gives students a structured rhythm for school success. Review weak topics, rehearse oral answers, and walk into exams with stronger recall and cleaner pronunciation.',
+        points: ['Exam-focused revision', 'Oral practice support', 'Stronger retention cadence'],
+        journey: [
+          { title: 'Step 1: Choose your subject target', code: 'Select one course goal, such as exam speaking, presentation fluency, or vocabulary retention.' },
+          { title: 'Step 2: Practice high-frequency school language', code: 'Train core academic phrases and classroom expressions you use in tests and assignments.' },
+          { title: 'Step 3: Run timed speaking drills', code: 'Answer short prompts under time pressure so you can think and respond faster in class.' },
+          { title: 'Step 4: Fix weak areas daily', code: 'Lexi tracks mistakes and gives focused review sets for grammar, pronunciation, and structure.' },
+          { title: 'Step 5: Rehearse before exams', code: 'Complete a final practice loop and present answers clearly with confidence before test day.' }
+        ]
+      },
+      professionals: {
+        accent: '#4F8C20',
+        glow: 'rgba(79,140,32,0.25)',
+        eyebrow: 'Work mode',
+        journeyName: 'Professional mode',
+        title: 'Sound clear and credible in meetings, calls, and client conversations',
+        text: 'Lexi simulates real workplace language so you can train for presentations, negotiations, and everyday collaboration. Practice business vocabulary in context and get instant rewrites that sharpen tone and clarity.',
+        points: ['Meeting language drills', 'Professional tone feedback', 'Industry phrase packs'],
+        journey: [
+          { title: 'Step 1: Define your work scenario', code: 'Pick your main context: meetings, interviews, presentations, sales calls, or client support.' },
+          { title: 'Step 2: Build role-specific language', code: 'Learn practical phrases for your field so you can communicate with precision and confidence.' },
+          { title: 'Step 3: Simulate real conversations', code: 'Practice live business dialogues with Lexi and train smooth responses in realistic pressure moments.' },
+          { title: 'Step 4: Improve tone and clarity', code: 'Get instant rewrites to sound concise, polite, and professional in both speech and wording.' },
+          { title: 'Step 5: Deliver with confidence', code: 'Repeat your final scripts until your message is natural, clear, and ready for real meetings.' }
+        ]
+      },
+      travelers: {
+        accent: '#86BE48',
+        glow: 'rgba(134,190,72,0.24)',
+        eyebrow: 'Travel mode',
+        journeyName: 'Traveler mode',
+        title: 'Learn practical phrases fast for airports, hotels, restaurants, and directions',
+        text: 'When you are preparing for a trip, Lexi prioritizes survival conversation first. You train common situations with live roleplay so ordering food, asking for help, and getting around feels natural on day one.',
+        points: ['Trip-ready phrase sets', 'Real scenario roleplay', 'Fast confidence boost'],
+        journey: [
+          { title: 'Step 1: Pick your destination journey', code: 'Set your trip profile so Lexi tailors phrases to transport, food, safety, and local interactions.' },
+          { title: 'Step 2: Learn essential travel phrases', code: 'Master greetings, directions, payments, check-in language, and emergency help expressions.' },
+          { title: 'Step 3: Roleplay common travel moments', code: 'Practice airport, hotel, restaurant, and taxi conversations before your departure date.' },
+          { title: 'Step 4: Train quick listening responses', code: 'Hear native-speed replies and practice fast understanding so you do not freeze in real life.' },
+          { title: 'Step 5: Travel with confidence', code: 'Use a short daily review to keep key phrases fresh and speak naturally throughout your trip.' }
+        ]
+      }
+    };
+
+    const renderAudiencePoints = (points) => {
+      audiencePoints.innerHTML = points.map((point) => `<span class="audience-point">${point}</span>`).join('');
+    };
+
+    const renderJourneySteps = (steps) => {
+      audienceJourneySteps.innerHTML = steps.map((item, idx) => `
+        <div class="audience-journey-step">
+          <div class="audience-step-node">0${idx + 1}</div>
+          <div class="audience-step-body">
+            <div class="audience-step-title">${item.title}</div>
+            <div class="audience-step-code">${item.code}</div>
+          </div>
+        </div>`).join('');
+    };
+
+    const drawAudienceFlowPaths = () => {
+      const flowRect = audienceFlow.getBoundingClientRect();
+      if (!flowRect.width || !flowRect.height) return;
+
+      const cardPoints = audienceTabs.map((tab) => {
+        const rect = tab.getBoundingClientRect();
+        return {
+          x: Math.round(rect.left - flowRect.left + (rect.width * 0.5)),
+          y: Math.round(rect.top - flowRect.top)
+        };
+      });
+
+      if (cardPoints.length < 2) return;
+
+      const lineY = Math.max(44, Math.round(Math.min(...cardPoints.map((p) => p.y)) - 34));
+      const startX = cardPoints[0].x;
+      const endX = cardPoints[cardPoints.length - 1].x;
+      const rootX = Math.round((startX + endX) / 2);
+      const rootTop = Math.max(58, lineY - 78);
+      const lineWidth = Math.max(24, endX - startX);
+      const sectionHeading = audienceSection ? audienceSection.querySelector('.stitle') : null;
+      const headingBottomY = sectionHeading ? Math.round(sectionHeading.getBoundingClientRect().bottom - flowRect.top + 8) : -70;
+      const rootStartY = Math.min(rootTop - 18, Math.max(-260, headingBottomY));
+
+      audienceFlowTopBubble.style.left = `${rootX}px`;
+      audienceFlowTopBubble.style.top = `${rootStartY - 9}px`;
+      audienceFlowTopStem.style.left = `${rootX}px`;
+      audienceFlowTopStem.style.top = `${rootStartY}px`;
+      audienceFlowTopStem.style.height = `${Math.max(32, rootTop - rootStartY)}px`;
+      audienceFlowTopStem.style.transform = 'translateX(-50%) scaleY(0)';
+
+      audienceFlowLine.style.top = `${lineY}px`;
+      audienceFlowLine.style.left = `${startX}px`;
+      audienceFlowLine.style.width = `${lineWidth}px`;
+
+      audienceFlowSvg.setAttribute('viewBox', `0 0 ${Math.round(flowRect.width)} ${Math.round(flowRect.height)}`);
+      audienceFlowTopRoot.setAttribute('d', `M ${rootX} ${rootStartY} L ${rootX} ${rootTop}`);
+      audienceFlowRoot.setAttribute('d', `M ${rootX} ${rootTop} L ${rootX} ${lineY}`);
+      audienceFlowTrunk.setAttribute('d', `M ${startX} ${lineY} L ${endX} ${lineY}`);
+      audienceFlowBranches.innerHTML = '';
+
+      cardPoints.forEach((point, idx) => {
+        const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const depth = Math.max(38, point.y - lineY);
+        const spread = (idx - (cardPoints.length - 1) / 2) * 10;
+        const endY = Math.max(lineY + 6, point.y - 12);
+        const cp1Y = lineY + depth * 0.28;
+        const cp2Y = lineY + depth * 0.8;
+        const d = `M ${point.x} ${lineY} C ${point.x + spread} ${cp1Y}, ${point.x - spread} ${cp2Y}, ${point.x} ${endY}`;
+
+        branch.setAttribute('d', d);
+        branch.setAttribute('class', 'audience-flow-branch');
+        audienceFlowBranches.appendChild(branch);
+      });
+    };
+
+    const playAudienceFlow = () => {
+      const topRootLen = audienceFlowTopRoot.getTotalLength();
+      const rootLen = audienceFlowRoot.getTotalLength();
+      const trunkLen = audienceFlowTrunk.getTotalLength();
+      gsap.set(audienceFlowTopRoot, { strokeDasharray: topRootLen, strokeDashoffset: topRootLen, opacity: 0.5 });
+      gsap.set(audienceFlowRoot, { strokeDasharray: rootLen, strokeDashoffset: rootLen, opacity: 0.5 });
+      gsap.set(audienceFlowTrunk, { strokeDasharray: trunkLen, strokeDashoffset: trunkLen, opacity: 0.42 });
+      gsap.set(audienceFlowLine, { autoAlpha: 0 });
+
+      const branches = Array.from(audienceFlowBranches.querySelectorAll('.audience-flow-branch'));
+      branches.forEach((path) => {
+        const len = path.getTotalLength();
+        gsap.set(path, {
+          strokeDasharray: len,
+          strokeDashoffset: len,
+          opacity: 0.4
+        });
+      });
+
+      const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+      tl.to(audienceFlowTopStem, {
+        scaleY: 1,
+        duration: 0.42,
+        ease: 'power2.out',
+        transformOrigin: 'top center'
+      });
+
+      tl.to(audienceFlowTopRoot, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.46,
+        ease: 'power2.out'
+      });
+
+      tl.to(audienceFlowRoot, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.42,
+        ease: 'power2.out'
+      });
+
+      tl.to(audienceFlowTrunk, {
+        strokeDashoffset: 0,
+        opacity: 1,
+        duration: 0.56,
+        ease: 'power2.out',
+        onStart: () => {
+          gsap.to(audienceFlowLine, { autoAlpha: 1, duration: 0.25, ease: 'power1.out' });
+        }
+      });
+
+      branches.forEach((branch, idx) => {
+        tl.to(branch, {
+          strokeDashoffset: 0,
+          opacity: 1,
+          duration: 0.34,
+          ease: 'power2.out'
+        });
+      });
+
+      return tl;
+    };
+
+    const drawAudiencePath = (key, immediate = false) => {
+      const profile = audienceProfiles[key];
+      const activeTab = audienceTabs.find((tab) => tab.dataset.audience === key);
+      if (!profile || !activeTab) return;
+
+      audiencePathGroup.innerHTML = '';
+
+      const stageRect = audienceStage.getBoundingClientRect();
+      if (!stageRect.width || !stageRect.height) return;
+
+      const tabRect = activeTab.getBoundingClientRect();
+      const sx = ((tabRect.left + (tabRect.width / 2)) - stageRect.left) / stageRect.width * 1180;
+      const sy = 2;
+      const ex = 590; // center bottom of stage
+      const ey = 109;
+      // Create a straighter line with slight curve
+      const d = `M ${sx} ${sy} L ${sx} 45 Q ${(sx + ex) / 2} 75, ${ex} ${ey}`;
+
+      [{ width: 8, opacity: 0.12 }, { width: 2.4, opacity: 0.9 }].forEach((layer, idx) => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'audience-lane-path');
+        path.setAttribute('stroke', profile.accent);
+        path.setAttribute('stroke-width', String(layer.width));
+        path.setAttribute('opacity', String(layer.opacity));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        audiencePathGroup.appendChild(path);
+
+        const len = path.getTotalLength();
+        gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
+        gsap.to(path, {
+          strokeDashoffset: 0,
+          duration: immediate ? 0 : 0.58,
+          ease: 'power2.out',
+          delay: immediate ? 0 : idx * 0.05
+        });
+      });
+    };
+
+    let activeAudience = 'beginners';
+    let audienceTween = null;
+
+    const setAudience = (key, immediate = false) => {
+      const profile = audienceProfiles[key];
+      if (!profile || key === activeAudience && !immediate) return;
+      activeAudience = key;
+      if (audienceSection) {
+        audienceSection.style.setProperty('--audience-accent', profile.accent);
+      }
+
+      if (audienceTween) {
+        audienceTween.kill();
+        audienceTween = null;
+      }
+
+      audienceTabs.forEach((tab) => {
+        const isOn = tab.dataset.audience === key;
+        tab.classList.toggle('on', isOn);
+        tab.setAttribute('aria-selected', isOn ? 'true' : 'false');
+      });
+
+      const panelNodes = [audienceEyebrow, audienceTitle, audienceText, audiencePoints, audienceJourneyIntro];
+      if (immediate) {
+        audienceEyebrow.textContent = profile.eyebrow;
+        audienceTitle.textContent = profile.title;
+        audienceText.textContent = profile.text;
+        renderAudiencePoints(profile.points);
+        audienceJourneyName.textContent = profile.journeyName || profile.eyebrow;
+        renderJourneySteps(profile.journey);
+        drawAudiencePath(key, true);
+        gsap.set(audienceJourneyIntro, { autoAlpha: 1, y: 0 });
+        gsap.set(audienceSpineFill, { scaleY: 1 });
+        const stepEls = audienceJourneySteps.querySelectorAll('.audience-journey-step');
+        gsap.set(stepEls, { autoAlpha: 1, x: 0 });
+        stepEls.forEach((step) => step.classList.add('lit'));
+        gsap.set(panelNodes, { autoAlpha: 1, y: 0 });
+        return;
+      }
+
+      drawAudiencePath(key);
+
+      audienceTween = gsap.timeline({ defaults: { overwrite: 'auto' } });
+      audienceTween
+        .to(panelNodes, { autoAlpha: 0, y: -8, duration: 0.16, ease: 'power1.out' })
+        .to(audienceSpineFill, { scaleY: 0, duration: 0.18, ease: 'power1.out' }, '<')
+        .add(() => {
+          audienceEyebrow.textContent = profile.eyebrow;
+          audienceTitle.textContent = profile.title;
+          audienceText.textContent = profile.text;
+          renderAudiencePoints(profile.points);
+          audienceJourneyName.textContent = profile.journeyName || profile.eyebrow;
+          renderJourneySteps(profile.journey);
+        })
+        .fromTo(panelNodes,
+          { autoAlpha: 0, y: 14 },
+          { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power2.out', stagger: 0.03 }
+        )
+        .fromTo(audienceJourneyIntro,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.3, ease: 'power2.out' },
+          '-=0.2'
+        )
+        .to(audienceSpineFill, {
+          scaleY: 1,
+          duration: 0.82,
+          ease: 'power2.out'
+        }, '-=0.12')
+        .add(() => {
+          const stepEls = Array.from(audienceJourneySteps.querySelectorAll('.audience-journey-step'));
+          stepEls.forEach((step) => step.classList.remove('lit'));
+          gsap.fromTo(stepEls,
+            { autoAlpha: 0, x: -14 },
+            {
+              autoAlpha: 1,
+              x: 0,
+              duration: 0.34,
+              ease: 'power2.out',
+              stagger: 0.12,
+              onStart: () => {
+                stepEls.forEach((step, idx) => {
+                  gsap.delayedCall(idx * 0.12, () => step.classList.add('lit'));
+                });
+              }
+            }
+          );
+        }, '-=0.65');
+    };
+
+    drawAudienceFlowPaths();
+    window.addEventListener('resize', drawAudienceFlowPaths);
+    ScrollTrigger.addEventListener('refresh', drawAudienceFlowPaths);
+
+    ScrollTrigger.create({
+      trigger: '#whoFor',
+      start: 'top 72%',
+      once: true,
+      onEnter: () => playAudienceFlow()
+    });
+
+    audienceTabs.forEach((tab) => {
+      tab.addEventListener('click', () => setAudience(tab.dataset.audience));
+    });
+
+    window.addEventListener('resize', () => {
+      drawAudiencePath(activeAudience, true);
+    });
+
+    ScrollTrigger.addEventListener('refresh', () => {
+      drawAudiencePath(activeAudience, true);
+    });
+
+    setAudience('beginners', true);
+
+    gsap.from(audienceTabs, {
+      y: 18,
+      autoAlpha: 0,
+      duration: 0.5,
+      stagger: 0.08,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: '#whoFor',
+        start: 'top 78%',
+        once: true
+      }
+    });
+  }
+</script>
+</body>
+</html>
