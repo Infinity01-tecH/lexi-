@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexi — Get Started</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --black:#111111;--green:#3B6D11;--green-dark:#27500A;--green-light:#EAF3DE;
+    --green-mid:#C0DD97;--white:#ffffff;--gray:#f6f6f3;--gray-text:#888;--border:#e8e8e4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:var(--black);overflow-x:hidden;min-height:100vh;}
+
+  /* Progress Bar */
+  .progress-bar{position:fixed;top:0;left:0;right:0;height:4px;background:var(--green-light);z-index:1000;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#7bbc33,#3B6D11);width:0%;transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1);border-radius:0 2px 2px 0;}
+
+  /* Onboarding Container */
+  .onboarding-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 24px 40px;background:linear-gradient(180deg,#fff 0%,#f5faee 100%);position:relative;}
+  
+  .onboarding-card{max-width:680px;width:100%;background:#fff;border-radius:24px;border:1.5px solid var(--green-mid);box-shadow:0 24px 60px rgba(59,109,17,0.12);padding:48px 56px;position:relative;overflow:hidden;}
+  .onboarding-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#7bbc33,#3B6D11,#7bbc33);opacity:0.6;}
+
+  /* Step Indicator */
+  .step-indicator{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px;}
+  .step-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all 0.4s ease;position:relative;}
+  .step-dot.active{background:var(--green);transform:scale(1.3);box-shadow:0 0 0 4px rgba(59,109,17,0.15);}
+  .step-dot.completed{background:var(--green-mid);}
+  .step-connector{width:32px;height:2px;background:var(--border);transition:background 0.4s ease;}
+  .step-connector.completed{background:var(--green-mid);}
+
+  /* Step Content */
+  .step-content{display:none;opacity:0;transform:translateY(20px);}
+  .step-content.active{display:block;opacity:1;transform:translateY(0);}
+  
+  .step-emoji{width:64px;height:64px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:var(--green-light);border-radius:50%;color:var(--green);}
+  .step-emoji svg{width:32px;height:32px;stroke-width:1.5;}
+  .step-title{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:var(--green-dark);text-align:center;margin-bottom:12px;line-height:1.2;}
+  .step-subtitle{font-size:15px;color:#5d7150;text-align:center;margin-bottom:32px;line-height:1.6;}
+
+  /* Input Fields */
+  .input-group{margin-bottom:24px;position:relative;}
+  .input-label{display:block;font-size:13px;font-weight:600;color:var(--green-dark);margin-bottom:8px;letter-spacing:0.04em;text-transform:uppercase;}
+  .input-field{width:100%;height:52px;border:1.5px solid var(--border);border-radius:12px;padding:0 16px;font-size:16px;font-family:'DM Sans',sans-serif;transition:all 0.3s ease;outline:none;}
+  .input-field:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(59,109,17,0.1);background:var(--green-light);}
+  .input-field::placeholder{color:#bbb;}
+  
+  /* Autocomplete Dropdown */
+  .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--green-mid);border-top:none;border-radius:0 0 12px 12px;margin-top:-1px;max-height:240px;overflow-y:auto;z-index:100;box-shadow:0 8px 24px rgba(59,109,17,0.15);display:none;}
+  .autocomplete-dropdown.show{display:block;animation:slideDown 0.2s ease;}
+  .autocomplete-item{padding:12px 16px;cursor:pointer;transition:all 0.2s ease;border-bottom:1px solid var(--border);font-size:14px;color:var(--black);display:flex;align-items:center;gap:8px;}
+  .autocomplete-item:last-child{border-bottom:none;}
+  .autocomplete-item:hover,.autocomplete-item.active{background:var(--green-light);color:var(--green-dark);}
+  .autocomplete-item .match-text{font-weight:600;color:var(--green);}
+  .autocomplete-empty{padding:16px;text-align:center;color:#999;font-size:13px;}
+  
+  @keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* Selection Cards */
+  .selection-grid{display:grid;gap:14px;margin-bottom:24px;}
+  .selection-grid.grid-2{grid-template-columns:repeat(2,1fr);}
+  .selection-grid.grid-3{grid-template-columns:repeat(3,1fr);}
+  
+  .selection-card{border:1.5px solid var(--border);border-radius:16px;padding:24px 20px;cursor:pointer;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);background:#fff;text-align:center;position:relative;overflow:hidden;}
+  .selection-card:hover{transform:translateY(-2px);border-color:var(--green-mid);box-shadow:0 8px 24px rgba(59,109,17,0.12);}
+  .selection-card.selected{border-color:var(--green);background:var(--green-light);box-shadow:0 8px 24px rgba(59,109,17,0.18);transform:translateY(-2px);}
+  .selection-card.selected::after{content:'✓';position:absolute;top:8px;right:12px;font-size:18px;color:var(--green);font-weight:700;}
+  
+  .card-emoji{width:56px;height:56px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;background:var(--green-light);border-radius:12px;color:var(--green);}
+  .card-emoji svg{width:28px;height:28px;stroke-width:1.5;}
+  .card-title{font-size:16px;font-weight:600;color:var(--green-dark);margin-bottom:6px;}
+  .card-desc{font-size:12px;color:#5d7150;line-height:1.5;}
+
+  /* Buttons */
+  .button-group{display:flex;gap:12px;margin-top:32px;}
+  .btn{flex:1;height:52px;border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s ease;font-family:'DM Sans',sans-serif;}
+  .btn-primary{background:var(--green);color:#fff;box-shadow:0 8px 20px rgba(59,109,17,0.25);}
+  .btn-primary:hover{background:var(--green-dark);transform:translateY(-2px);box-shadow:0 12px 28px rgba(59,109,17,0.3);}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .btn-secondary{background:var(--gray);color:var(--black);border:1.5px solid var(--border);}
+  .btn-secondary:hover{background:var(--green-light);border-color:var(--green-mid);}
+
+  /* Personalized Message */
+  .personalized-msg{background:var(--green-light);border:1.5px solid var(--green-mid);border-radius:12px;padding:16px;margin-bottom:24px;text-align:center;font-size:15px;color:var(--green-dark);font-weight:500;opacity:0;transform:translateY(10px);transition:all 0.5s ease;}
+  .personalized-msg.show{opacity:1;transform:translateY(0);}
+
+  /* Location Toggle */
+  .location-toggle{display:flex;align-items:center;justify-content:space-between;padding:16px;background:var(--gray);border-radius:12px;margin-bottom:24px;}
+  .location-text{flex:1;margin-right:16px;}
+  .location-title{font-size:14px;font-weight:600;color:var(--green-dark);margin-bottom:4px;}
+  .location-desc{font-size:12px;color:#5d7150;line-height:1.5;}
+  .toggle-switch{width:48px;height:26px;background:var(--border);border-radius:999px;position:relative;cursor:pointer;transition:background 0.3s ease;flex-shrink:0;}
+  .toggle-switch.active{background:var(--green);}
+  .toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.3s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1);}
+  .toggle-switch.active::after{transform:translateX(22px);}
+
+  /* Benefits List */
+  .benefits-list{list-style:none;margin-bottom:24px;}
+  .benefit-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .benefit-item:last-child{border-bottom:none;}
+  .benefit-icon{width:24px;height:24px;flex-shrink:0;color:var(--green);}
+  .benefit-icon svg{width:20px;height:20px;stroke-width:2;}
+  .benefit-text{font-size:13px;color:#5d7150;line-height:1.6;}
+  .benefit-text strong{color:var(--green-dark);}
+
+  /* Completion Screen */
+  .completion-screen{text-align:center;padding:20px 0;}
+  .completion-icon{width:88px;height:88px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;background:var(--green-light);border-radius:50%;color:var(--green);animation:celebrate 0.8s cubic-bezier(0.34,1.56,0.64,1);}
+  .completion-icon svg{width:44px;height:44px;stroke-width:1.5;}
+  .completion-title{font-family:'Fraunces',serif;font-size:36px;font-weight:700;color:var(--green-dark);margin-bottom:12px;}
+  .completion-text{font-size:16px;color:#5d7150;line-height:1.7;margin-bottom:32px;}
+  
+  @keyframes celebrate{0%{transform:scale(0) rotate(-180deg);opacity:0;}100%{transform:scale(1) rotate(0deg);opacity:1;}}
+
+  /* Animations */
+  @keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+  .fade-up{animation:fadeUp 0.6s ease forwards;}
+
+  /* Language Selection Tags */
+  .language-tags{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;}
+  .language-tag{border:1.5px solid var(--border);border-radius:999px;padding:10px 18px;cursor:pointer;transition:all 0.3s ease;background:#fff;font-size:14px;font-weight:500;color:var(--black);display:flex;align-items:center;gap:6px;user-select:none;}
+  .language-tag:hover{border-color:var(--green-mid);background:var(--green-light);}
+  .language-tag.selected{border-color:var(--green);background:var(--green);color:#fff;}
+  .language-tag.selected::after{content:'✓';font-weight:700;}
+
+  /* Location Status */
+  .location-status{padding:12px;border-radius:12px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px;}
+  .location-status.detecting{background:#fff3cd;border:1.5px solid #ffc107;color:#856404;}
+  .location-status.success{background:var(--green-light);border:1.5px solid var(--green-mid);color:var(--green-dark);}
+  .location-status.error{background:#f8d7da;border:1.5px solid #f5c6cb;color:#721c24;}
+  .location-status svg{width:16px;height:16px;flex-shrink:0;}
+
+  /* Learning Path (Duolingo-style) */
+  .learning-path{padding:32px 24px;background:linear-gradient(180deg,#fff 0%,#f5faee 100%);min-height:100vh;}
+  .path-header{text-align:center;margin-bottom:40px;}
+  .path-title{font-family:'Fraunces',serif;font-size:36px;font-weight:700;color:var(--green-dark);margin-bottom:8px;}
+  .path-subtitle{font-size:15px;color:#5d7150;}
+  
+  .path-container{max-width:600px;margin:0 auto;position:relative;}
+  .path-line{position:absolute;left:50%;top:0;bottom:0;width:4px;background:var(--green-light);transform:translateX(-50%);border-radius:2px;}
+  .path-line-progress{position:absolute;left:50%;top:0;width:4px;background:linear-gradient(180deg,#7bbc33,#3B6D11);transform:translateX(-50%);border-radius:2px;transition:height 1s ease;}
+  
+  .path-step{position:relative;display:flex;align-items:center;margin-bottom:48px;cursor:pointer;transition:transform 0.3s ease;}
+  .path-step:hover{transform:scale(1.05);}
+  .path-step:nth-child(odd){justify-content:flex-start;padding-right:calc(50% + 40px);}
+  .path-step:nth-child(even){justify-content:flex-end;padding-left:calc(50% + 40px);}
+  
+  .path-node{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-shadow:0 8px 24px rgba(59,109,17,0.2);transition:all 0.3s ease;}
+  .path-node.locked{background:#e0e0e0;color:#999;}
+  .path-node.available{background:var(--green);color:#fff;animation:pulse 2s infinite;}
+  .path-node.completed{background:var(--green-mid);color:var(--green-dark);}
+  .path-node svg{width:32px;height:32px;stroke-width:2;}
+  
+  .path-step-info{position:absolute;}
+  .path-step:nth-child(odd) .path-step-info{right:16px;text-align:right;}
+  .path-step:nth-child(even) .path-step-info{left:16px;text-align:left;}
+  
+  .path-step-title{font-size:16px;font-weight:600;color:var(--green-dark);margin-bottom:4px;}
+  .path-step-desc{font-size:12px;color:#5d7150;max-width:180px;}
+  
+  @keyframes pulse{
+    0%,100%{box-shadow:0 8px 24px rgba(59,109,17,0.2);}
+    50%{box-shadow:0 8px 32px rgba(59,109,17,0.4),0 0 0 8px rgba(59,109,17,0.1);}
+  }
+
+  /* Responsive */
+  @media(max-width:768px){
+    .onboarding-card{padding:32px 28px;}
+    .step-title{font-size:26px;}
+    .selection-grid.grid-2,.selection-grid.grid-3{grid-template-columns:1fr;}
+    .button-group{flex-direction:column-reverse;}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<div class="onboarding-shell">
+  <div class="onboarding-card">
+    
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="stepIndicator">
+      <div class="step-dot active" data-step="1"></div>
+      <div class="step-connector"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-connector"></div>
+      <div class="step-dot" data-step="3"></div>
+      <div class="step-connector"></div>
+      <div class="step-dot" data-step="4"></div>
+      <div class="step-connector"></div>
+      <div class="step-dot" data-step="5"></div>
+      <div class="step-connector"></div>
+      <div class="step-dot" data-step="6"></div>
+    </div>
+
+    <!-- Step 1: Name -->
+    <div class="step-content active" id="step1">
+      <div class="step-emoji"><i data-lucide="hand"></i></div>
+      <h2 class="step-title">What's your name?</h2>
+      <p class="step-subtitle">Let's personalize your learning experience</p>
+      
+      <div class="input-group">
+        <label class="input-label" for="nameInput">Your Name</label>
+        <input type="text" id="nameInput" class="input-field" placeholder="Type your name..." autocomplete="off">
+      </div>
+
+      <div class="personalized-msg" id="nameMessage"></div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" id="step1Next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Languages You Speak -->
+    <div class="step-content" id="step2">
+      <div class="step-emoji"><i data-lucide="languages"></i></div>
+      <h2 class="step-title">What languages do you speak?</h2>
+      <p class="step-subtitle">Select all that apply (this helps us personalize your lessons)</p>
+      
+      <div class="language-tags" id="languageTags">
+        <div class="language-tag" data-lang="English">🇬🇧 English</div>
+        <div class="language-tag" data-lang="Spanish">🇪🇸 Spanish</div>
+        <div class="language-tag" data-lang="French">🇫🇷 French</div>
+        <div class="language-tag" data-lang="Mandarin">🇨🇳 Mandarin</div>
+        <div class="language-tag" data-lang="Arabic">🇸🇦 Arabic</div>
+        <div class="language-tag" data-lang="Hindi">🇮🇳 Hindi</div>
+        <div class="language-tag" data-lang="Portuguese">🇵🇹 Portuguese</div>
+        <div class="language-tag" data-lang="Russian">🇷🇺 Russian</div>
+        <div class="language-tag" data-lang="Japanese">🇯🇵 Japanese</div>
+        <div class="language-tag" data-lang="German">🇩🇪 German</div>
+        <div class="language-tag" data-lang="Korean">🇰🇷 Korean</div>
+        <div class="language-tag" data-lang="Italian">🇮🇹 Italian</div>
+        <div class="language-tag" data-lang="Yoruba">🇳🇬 Yoruba</div>
+        <div class="language-tag" data-lang="Igbo">🇳🇬 Igbo</div>
+        <div class="language-tag" data-lang="Hausa">🇳🇬 Hausa</div>
+        <div class="language-tag" data-lang="Swahili">🇰🇪 Swahili</div>
+        <div class="language-tag" data-lang="Turkish">🇹🇷 Turkish</div>
+        <div class="language-tag" data-lang="Dutch">🇳🇱 Dutch</div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" id="step2Next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Country / Location -->
+    <div class="step-content" id="step3">
+      <div class="step-emoji"><i data-lucide="globe"></i></div>
+      <h2 class="step-title">Where are you from?</h2>
+      <p class="step-subtitle">Help us customize lessons to your region</p>
+      
+      <div class="input-group">
+        <label class="input-label" for="countryInput">Country</label>
+        <input type="text" id="countryInput" class="input-field" placeholder="Start typing your country..." autocomplete="off">
+        <div class="autocomplete-dropdown" id="countryDropdown"></div>
+      </div>
+
+      <div id="locationStatus"></div>
+
+      <div class="location-toggle">
+        <div class="location-text">
+          <div class="location-title">Use my current location</div>
+          <div class="location-desc">Automatically detect your location for better personalization</div>
+        </div>
+        <button class="btn btn-secondary" id="detectLocationBtn" style="flex-shrink:0;height:40px;padding:0 16px;font-size:13px;">
+          <i data-lucide="map-pin" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>
+          Detect
+        </button>
+      </div>
+
+      <ul class="benefits-list">
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="target"></i></span>
+          <span class="benefit-text"><strong>Local accents</strong> — Practice with region-specific pronunciation</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="message-circle"></i></span>
+          <span class="benefit-text"><strong>Regional phrases</strong> — Learn expressions used in your area</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="clock"></i></span>
+          <span class="benefit-text"><strong>Smart reminders</strong> — Notifications at the perfect time</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="landmark"></i></span>
+          <span class="benefit-text"><strong>Cultural examples</strong> — Lessons that match your context</span>
+        </li>
+      </ul>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+        <button class="btn btn-primary" id="step3Next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Learning Purpose -->
+    <div class="step-content" id="step4">
+      <div class="step-emoji"><i data-lucide="aim"></i></div>
+      <h2 class="step-title">Why are you learning English?</h2>
+      <p class="step-subtitle">Choose the path that fits your goals</p>
+      
+      <div class="selection-grid grid-2" id="purposeGrid">
+        <div class="selection-card" data-purpose="student">
+          <div class="card-emoji"><i data-lucide="graduation-cap"></i></div>
+          <div class="card-title">Student</div>
+          <div class="card-desc">Academic English, essays, presentations</div>
+        </div>
+        <div class="selection-card" data-purpose="professional">
+          <div class="card-emoji"><i data-lucide="briefcase"></i></div>
+          <div class="card-title">Professional</div>
+          <div class="card-desc">Business communication, meetings, emails</div>
+        </div>
+        <div class="selection-card" data-purpose="traveller">
+          <div class="card-emoji"><i data-lucide="plane"></i></div>
+          <div class="card-title">Traveller</div>
+          <div class="card-desc">Conversational skills for travel</div>
+        </div>
+        <div class="selection-card" data-purpose="casual">
+          <div class="card-emoji"><i data-lucide="message-square"></i></div>
+          <div class="card-title">Casual Learning</div>
+          <div class="card-desc">Personal growth and fun</div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="goToStep(3)">← Back</button>
+        <button class="btn btn-primary" id="step4Next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Student Pathway (Conditional) -->
+    <div class="step-content" id="step5">
+      <div class="step-emoji"><i data-lucide="book-open"></i></div>
+      <h2 class="step-title">Tell us about your studies</h2>
+      <p class="step-subtitle">We'll personalize vocabulary and examples for your field</p>
+      
+      <div class="input-group">
+        <label class="input-label" for="courseInput">Which course are you studying?</label>
+        <input type="text" id="courseInput" class="input-field" placeholder="Start typing your course..." autocomplete="off">
+        <div class="autocomplete-dropdown" id="courseDropdown"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="schoolInput">Which school do you attend?</label>
+        <input type="text" id="schoolInput" class="input-field" placeholder="Start typing your school..." autocomplete="off">
+        <div class="autocomplete-dropdown" id="schoolDropdown"></div>
+      </div>
+
+      <ul class="benefits-list">
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="book-marked"></i></span>
+          <span class="benefit-text"><strong>Field-specific vocabulary</strong> — Terms from your course</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="lightbulb"></i></span>
+          <span class="benefit-text"><strong>Relevant examples</strong> — Scenarios from your discipline</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="file-text"></i></span>
+          <span class="benefit-text"><strong>Assignment help</strong> — Academic writing support</span>
+        </li>
+        <li class="benefit-item">
+          <span class="benefit-icon"><i data-lucide="mic"></i></span>
+          <span class="benefit-text"><strong>Presentation skills</strong> — Speak confidently in class</span>
+        </li>
+      </ul>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
+        <button class="btn btn-primary" id="step5Next" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Learning Level -->
+    <div class="step-content" id="step6">
+      <div class="step-emoji"><i data-lucide="bar-chart-3"></i></div>
+      <h2 class="step-title">Choose your English level</h2>
+      <p class="step-subtitle">We'll adjust the difficulty to match your skills</p>
+      
+      <div class="selection-grid" id="levelGrid">
+        <div class="selection-card" data-level="normal">
+          <div class="card-emoji"><i data-lucide="circle-dot" style="color:#22c55e;"></i></div>
+          <div class="card-title">Normal (Beginner)</div>
+          <div class="card-desc">Slow speech, easy vocabulary, visual guidance, repetition, beginner grammar</div>
+        </div>
+        <div class="selection-card" data-level="intermediate">
+          <div class="card-emoji"><i data-lucide="circle-dot" style="color:#eab308;"></i></div>
+          <div class="card-title">Intermediate</div>
+          <div class="card-desc">Faster speaking, longer sentences, real conversations, fewer hints</div>
+        </div>
+        <div class="selection-card" data-level="advanced">
+          <div class="card-emoji"><i data-lucide="circle-dot" style="color:#ef4444;"></i></div>
+          <div class="card-title">Advanced</div>
+          <div class="card-desc">Debates, idioms, academic English, professional communication, presentations</div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-secondary" id="step6Back">← Back</button>
+        <button class="btn btn-primary" id="step6Next" disabled>Show My Learning Path 🚀</button>
+      </div>
+    </div>
+
+    <!-- Completion Screen -->
+    <div class="step-content" id="stepComplete">
+      <div class="completion-screen">
+        <div class="completion-icon"><i data-lucide="party-popper"></i></div>
+        <h2 class="completion-title">You're all set!</h2>
+        <p class="completion-text" id="completionText"></p>
+        <button class="btn btn-primary" id="viewPathBtn" style="max-width:280px;margin:0 auto;">View My Learning Path <i data-lucide="arrow-right" style="width:16px;height:16px;vertical-align:middle;margin-left:4px;"></i></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Learning Path Screen (Duolingo-style) -->
+<div id="learningPathScreen" class="learning-path" style="display:none;">
+  <div class="path-header">
+    <h1 class="path-title" id="pathTitle">Your English Learning Path</h1>
+    <p class="path-subtitle" id="pathSubtitle">Follow the path step by step to master English</p>
+  </div>
+  
+  <div class="path-container">
+    <div class="path-line"></div>
+    <div class="path-line-progress" id="pathLineProgress" style="height:0%;"></div>
+    <div id="pathStepsContainer"></div>
+  </div>
+</div>
+
+<script>
+  // State Management
+  const state = {
+    currentStep: 1,
+    totalSteps: 6,
+    name: '',
+    languages: [],
+    country: '',
+    locationDetected: false,
+    purpose: '',
+    course: '',
+    school: '',
+    level: ''
+  };
+
+  // DOM Elements
+  const progressFill = document.getElementById('progressFill');
+  const stepIndicator = document.getElementById('stepIndicator');
+  const nameInput = document.getElementById('nameInput');
+  const nameMessage = document.getElementById('nameMessage');
+  const countryInput = document.getElementById('countryInput');
+  const locationToggle = document.getElementById('locationToggle');
+  const courseInput = document.getElementById('courseInput');
+  const schoolInput = document.getElementById('schoolInput');
+
+  // Data Lists for Autocomplete
+  const countriesList = [
+    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+    'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi',
+    'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+    'Democratic Republic of the Congo', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+    'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia',
+    'Fiji', 'Finland', 'France',
+    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+    'Haiti', 'Honduras', 'Hungary',
+    'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Ivory Coast',
+    'Jamaica', 'Japan', 'Jordan',
+    'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan',
+    'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+    'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+    'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway',
+    'Oman',
+    'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+    'Qatar',
+    'Romania', 'Russia', 'Rwanda',
+    'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
+    'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
+    'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
+    'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+    'Yemen',
+    'Zambia', 'Zimbabwe'
+  ];
+
+  // Schools by Country
+  const schoolsByCountry = {
+    'Nigeria': [
+      'University of Lagos (UNILAG)', 'University of Ibadan (UI)', 'Obafemi Awolowo University (OAU)', 
+      'University of Nigeria Nsukka (UNN)', 'Ahmadu Bello University (ABU)', 'Covenant University', 
+      'Babcock University', 'University of Ilorin (UNILORIN)', 'Federal University of Technology Minna',
+      'Lagos State University (LASU)', 'Nnamdi Azikiwe University', 'University of Benin (UNIBEN)',
+      'University of Port Harcourt (UNIPORT)', 'Michael Okpara University of Agriculture', 
+      'University of Jos (UNIJOS)', 'Delta State University', 'Rivers State University',
+      'Federal University of Technology Akure (FUTA)', 'Federal University of Technology Owerri (FUTO)',
+      'University of Agriculture Abeokuta (FUNAAB)',
+      'Nigerian Turkish Nile University', 'Afe Babalola University', 'Landmark University'
+    ],
+    'United States': [
+      'Harvard University', 'Stanford University', 'MIT (Massachusetts Institute of Technology)', 
+      'Yale University', 'Princeton University', 'Columbia University', 'University of Chicago', 
+      'UC Berkeley', 'Caltech', 'University of Pennsylvania', 'Duke University', 'Northwestern University',
+      'Johns Hopkins University', 'Dartmouth College', 'Brown University', 'Cornell University',
+      'University of Michigan', 'UCLA', 'New York University (NYU)', 'University of Texas at Austin',
+      'University of Washington', 'Carnegie Mellon University', 'Georgetown University', 'USC'
+    ],
+    'United Kingdom': [
+      'University of Oxford', 'University of Cambridge', 'Imperial College London', 'UCL (University College London)',
+      'King\'s College London', 'University of Edinburgh', 'University of Manchester', 'London School of Economics (LSE)',
+      'University of Bristol', 'University of Warwick', 'University of Glasgow', 'Durham University',
+      'University of Birmingham', 'University of Leeds', 'University of Sheffield', 'University of Southampton',
+      'Queen Mary University of London', 'Newcastle University', 'University of Nottingham', 'Lancaster University'
+    ],
+    'India': [
+      'Indian Institute of Technology Bombay (IIT Bombay)', 'Indian Institute of Technology Delhi (IIT Delhi)',
+      'Indian Institute of Technology Madras (IIT Madras)', 'Indian Institute of Technology Kanpur (IIT Kanpur)',
+      'Indian Institute of Technology Kharagpur (IIT Kharagpur)', 'University of Delhi', 'Jawaharlal Nehru University',
+      'Indian Institute of Science (IISc)', 'Banaras Hindu University', 'University of Hyderabad',
+      'Anna University', 'Vellore Institute of Technology (VIT)', 'Manipal Academy of Higher Education',
+      'BITS Pilani', 'Amity University', 'Lovely Professional University'
+    ],
+    'Canada': [
+      'University of Toronto', 'McGill University', 'University of British Columbia (UBC)', 
+      'University of Alberta', 'McMaster University', 'University of Montreal', 'University of Waterloo',
+      'Western University', 'Queen\'s University', 'University of Calgary', 'Dalhousie University',
+      'Simon Fraser University', 'York University', 'University of Ottawa', 'Carleton University'
+    ],
+    'Australia': [
+      'University of Melbourne', 'University of Sydney', 'Australian National University (ANU)', 
+      'University of New South Wales (UNSW)', 'University of Queensland', 'Monash University',
+      'University of Western Australia', 'University of Adelaide', 'Macquarie University',
+      'Queensland University of Technology (QUT)', 'RMIT University', 'Curtin University', 'Deakin University'
+    ],
+    'Germany': [
+      'Technical University of Munich (TUM)', 'Ludwig Maximilian University of Munich (LMU)', 
+      'Heidelberg University', 'Humboldt University of Berlin', 'Free University of Berlin',
+      'RWTH Aachen University', 'Karlsruhe Institute of Technology (KIT)', 'University of Bonn',
+      'University of Freiburg', 'TU Berlin', 'University of Hamburg', 'University of Cologne'
+    ],
+    'France': [
+      'Sorbonne University', 'Paris Sciences et Lettres University (PSL)', 'École Polytechnique',
+      'CentraleSupélec', 'Sciences Po', 'University of Paris', 'Grenoble Alpes University',
+      'Aix-Marseille University', 'University of Strasbourg', 'Lyon 1 University', 'ENS de Lyon'
+    ],
+    'China': [
+      'Tsinghua University', 'Peking University', 'Fudan University', 'Shanghai Jiao Tong University',
+      'Zhejiang University', 'University of Science and Technology of China', 'Nanjing University',
+      'Wuhan University', 'Sun Yat-sen University', 'Xi\'an Jiaotong University', 'Harbin Institute of Technology'
+    ],
+    'Japan': [
+      'University of Tokyo', 'Kyoto University', 'Tokyo Institute of Technology', 'Osaka University',
+      'Tohoku University', 'Nagoya University', 'Hokkaido University', 'Keio University',
+      'Waseda University', 'Tokyo Medical and Dental University', 'Kyushu University'
+    ],
+    'South Korea': [
+      'Seoul National University', 'Korea Advanced Institute of Science and Technology (KAIST)',
+      'Yonsei University', 'Korea University', 'Sungkyunkwan University (SKKU)', 'POSTECH',
+      'Hanyang University', 'Kyung Hee University', 'Ewha Womans University', 'Pusan National University'
+    ],
+    'Spain': [
+      'University of Barcelona', 'Complutense University of Madrid', 'Autonomous University of Madrid',
+      'Pompeu Fabra University', 'University of Navarra', 'IE University', 'IESE Business School',
+      'Polytechnic University of Catalonia', 'University of Valencia', 'University of Salamanca'
+    ],
+    'Italy': [
+      'University of Bologna', 'Sapienza University of Rome', 'University of Milan', 
+      'Polytechnic University of Milan', 'University of Padua', 'University of Florence',
+      'Bocconi University', 'University of Turin', 'University of Pisa', 'Scuola Normale Superiore'
+    ],
+    'Netherlands': [
+      'University of Amsterdam', 'Delft University of Technology', 'Utrecht University', 
+      'Leiden University', 'Erasmus University Rotterdam', 'Eindhoven University of Technology',
+      'University of Groningen', 'Wageningen University', 'Radboud University', 'Maastricht University'
+    ],
+    'South Africa': [
+      'University of Cape Town (UCT)', 'University of the Witwatersrand', 'Stellenbosch University',
+      'University of Johannesburg', 'University of Pretoria', 'University of KwaZulu-Natal',
+      'Cape Peninsula University of Technology', 'North-West University'
+    ],
+    'Kenya': [
+      'University of Nairobi', 'Kenyatta University', 'Strathmore University', 
+      'Moi University', 'Egerton University', 'Jomo Kenyatta University of Agriculture and Technology',
+      'United States International University Africa (USIU-Africa)'
+    ],
+    'Ghana': [
+      'University of Ghana', 'Kwame Nkrumah University of Science and Technology', 
+      'University of Cape Coast', 'Ashesi University', 'Ghana Institute of Management and Public Administration (GIMPA)',
+      'University of Education Winneba'
+    ],
+    'Brazil': [
+      'University of São Paulo (USP)', 'State University of Campinas (UNICAMP)', 
+      'Federal University of Rio de Janeiro', 'São Paulo State University (UNESP)',
+      'Federal University of Minas Gerais', 'Pontifical Catholic University of Rio de Janeiro'
+    ],
+    'Mexico': [
+      'National Autonomous University of Mexico (UNAM)', 'Monterrey Institute of Technology (ITESM)',
+      'Tecnológico de Monterrey', 'Universidad de Guadalajara', 'Universidad Iberoamericana',
+      'Instituto Politécnico Nacional (IPN)'
+    ],
+    'Saudi Arabia': [
+      'King Saud University', 'King Abdulaziz University', 'King Fahd University of Petroleum and Minerals',
+      'King Abdullah University of Science and Technology (KAUST)', 'Princess Nourah bint Abdulrahman University'
+    ],
+    'United Arab Emirates': [
+      'American University in Dubai', 'United Arab Emirates University', 'Khalifa University',
+      'American University of Sharjah', 'Dubai Medical College', 'University of Sharjah'
+    ],
+    'Egypt': [
+      'Cairo University', 'American University in Cairo', 'Alexandria University', 
+      'Ain Shams University', 'Assiut University', 'Mansoura University', 'Helwan University'
+    ],
+    'Turkey': [
+      'Middle East Technical University (METU)', 'Boğaziçi University', 'Istanbul Technical University',
+      'Koç University', 'Sabancı University', 'Hacettepe University', 'Ankara University', 'Istanbul University'
+    ],
+    'Russia': [
+      'Moscow State University', 'Saint Petersburg State University', 'Bauman Moscow State Technical University',
+      'Novosibirsk State University', 'Tomsk State University', 'Higher School of Economics',
+      'Moscow Institute of Physics and Technology'
+    ],
+    'Poland': [
+      'University of Warsaw', 'Jagiellonian University', 'Warsaw University of Technology',
+      'Adam Mickiewicz University', 'AGH University of Science and Technology', 'University of Wrocław'
+    ],
+    'Sweden': [
+      'Karolinska Institute', 'KTH Royal Institute of Technology', 'Lund University', 
+      'Uppsala University', 'University of Gothenburg', 'Stockholm University', 'Chalmers University of Technology'
+    ],
+    'Switzerland': [
+      'ETH Zurich', 'EPFL (École Polytechnique Fédérale de Lausanne)', 'University of Zurich',
+      'University of Geneva', 'University of Basel', 'University of Bern', 'University of Lausanne'
+    ],
+    'Singapore': [
+      'National University of Singapore (NUS)', 'Nanyang Technological University (NTU)', 
+      'Singapore Management University (SMU)', 'Singapore University of Technology and Design (SUTD)'
+    ],
+    'Malaysia': [
+      'University of Malaya', 'Universiti Kebangsaan Malaysia (UKM)', 'Universiti Sains Malaysia (USM)',
+      'Universiti Putra Malaysia (UPM)', 'Taylor\'s University', 'Monash University Malaysia'
+    ],
+    'Thailand': [
+      'Chulalongkorn University', 'Mahidol University', 'Thammasat University', 
+      'King Mongkut\'s Institute of Technology', 'Chiang Mai University'
+    ],
+    'Pakistan': [
+      'Lahore University of Management Sciences (LUMS)', 'National University of Sciences and Technology (NUST)',
+      'Quaid-i-Azam University', 'University of the Punjab', 'Aga Khan University', 'COMSATS University'
+    ],
+    'Bangladesh': [
+      'University of Dhaka', 'Bangladesh University of Engineering and Technology (BUET)',
+      'North South University', 'BRAC University', 'Jahangirnagar University'
+    ],
+    'Philippines': [
+      'University of the Philippines', 'Ateneo de Manila University', 'De La Salle University',
+      'University of Santo Tomas', 'Mapúa University', 'Adamson University'
+    ],
+    'Indonesia': [
+      'University of Indonesia', 'Bandung Institute of Technology (ITB)', 'Gadjah Mada University',
+      'Airlangga University', 'Bogor Agricultural University', 'Diponegoro University'
+    ],
+    'Argentina': [
+      'University of Buenos Aires (UBA)', 'Austral University Argentina', 'Universidad Nacional de Córdoba',
+      'Universidad Torcuato Di Tella', 'Instituto Tecnológico de Buenos Aires'
+    ],
+    'Colombia': [
+      'Universidad de los Andes', 'National University of Colombia', 'Universidad Javeriana',
+      'EAFIT University', 'Universidad del Norte', 'ICESI University'
+    ]
+  };
+
+  // Default schools (if country not in list)
+  const defaultSchools = [
+    'National University', 'State University', 'City College', 'Technical Institute',
+    'Polytechnic', 'Academy of Arts', 'School of Business', 'Community College',
+    'Institute of Technology', 'University College'
+  ];
+
+  const coursesList = [
+    'Accounting', 'Actuarial Science', 'Aerospace Engineering', 'Agriculture', 'Anthropology', 'Applied Mathematics', 'Architecture', 'Art History', 'Artificial Intelligence', 'Astrophysics',
+    'Biochemistry', 'Biology', 'Biomedical Engineering', 'Biotechnology', 'Business Administration', 'Business Analytics',
+    'Chemical Engineering', 'Chemistry', 'Civil Engineering', 'Computer Engineering', 'Computer Science', 'Construction Management', 'Creative Writing', 'Criminology', 'Cybersecurity',
+    'Data Science', 'Dentistry', 'Design', 'Digital Marketing', 'Drama', 'Economics', 'Education', 'Electrical Engineering', 'English Literature', 'Environmental Science', 'Event Management',
+    'Fashion Design', 'Film Studies', 'Finance', 'Fine Arts', 'Food Science', 'Forensic Science',
+    'Geography', 'Geology', 'Graphic Design', 'Health Sciences', 'History', 'Hospitality Management', 'Human Resources',
+    'Industrial Engineering', 'Information Systems', 'Information Technology', 'Interior Design', 'International Business', 'International Relations',
+    'Journalism',
+    'Law', 'Linguistics', 'Logistics',
+    'Marine Biology', 'Marketing', 'Mathematics', 'Mechanical Engineering', 'Media Studies', 'Medicine', 'Microbiology', 'Music',
+    'Nursing', 'Nutrition',
+    'Pharmacy', 'Philosophy', 'Photography', 'Physical Education', 'Physics', 'Political Science', 'Psychology', 'Public Administration', 'Public Health', 'Public Relations',
+    'Real Estate', 'Religious Studies', 'Robotics',
+    'Social Work', 'Sociology', 'Software Engineering', 'Sports Management', 'Statistics', 'Supply Chain Management',
+    'Teaching', 'Theatre', 'Tourism', 'Urban Planning',
+    'Veterinary Medicine', 'Visual Arts', 'Web Development', 'Zoology'
+  ];
+
+  // Initialize
+  lucide.createIcons();
+  updateProgress();
+  
+  // Step 2: Language Selection
+  document.querySelectorAll('#languageTags .language-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      tag.classList.toggle('selected');
+      
+      // Update state
+      state.languages = Array.from(document.querySelectorAll('#languageTags .language-tag.selected'))
+        .map(t => t.dataset.lang);
+      
+      // Enable/disable button
+      document.getElementById('step2Next').disabled = state.languages.length === 0;
+    });
+  });
+
+  document.getElementById('step2Next').addEventListener('click', () => {
+    if (state.languages.length > 0) goToStep(3);
+  });
+  
+  // Step 3: Geolocation
+  const detectLocationBtn = document.getElementById('detectLocationBtn');
+  const locationStatus = document.getElementById('locationStatus');
+  
+  detectLocationBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      showLocationStatus('error', 'Geolocation is not supported by your browser');
+      return;
+    }
+    
+    showLocationStatus('detecting', 'Detecting your location...');
+    detectLocationBtn.disabled = true;
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        // Use reverse geocoding API to get country
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+          .then(response => response.json())
+          .then(data => {
+            const country = data.address.country;
+            if (country) {
+              countryInput.value = country;
+              state.country = country;
+              state.locationDetected = true;
+              showLocationStatus('success', `Location detected: ${country}`);
+              validateStep3();
+              updateSchoolListForCountry(country);
+            } else {
+              showLocationStatus('error', 'Could not determine country from location');
+            }
+          })
+          .catch(error => {
+            showLocationStatus('error', 'Error detecting location. Please select manually.');
+          })
+          .finally(() => {
+            detectLocationBtn.disabled = false;
+          });
+      },
+      (error) => {
+        showLocationStatus('error', 'Location access denied. Please select your country manually.');
+        detectLocationBtn.disabled = false;
+      }
+    );
+  });
+  
+  function showLocationStatus(type, message) {
+    const iconMap = {
+      detecting: 'loader',
+      success: 'check-circle',
+      error: 'alert-circle'
+    };
+    
+    locationStatus.innerHTML = `
+      <div class="location-status ${type}">
+        <i data-lucide="${iconMap[type]}"></i>
+        <span>${message}</span>
+      </div>
+    `;
+    lucide.createIcons();
+  }
+  
+  setupAutocomplete('countryInput', 'countryDropdown', countriesList, (value) => {
+    state.country = value;
+    validateStep3();
+    updateSchoolListForCountry(value);
+  });
+  setupAutocomplete('courseInput', 'courseDropdown', coursesList, (value) => {
+    state.course = value;
+    validateStep4();
+  });
+  
+  // Initialize school autocomplete with empty list (will be populated when country is selected)
+  let currentSchoolsList = defaultSchools;
+  const schoolAutocomplete = setupAutocomplete('schoolInput', 'schoolDropdown', currentSchoolsList, (value) => {
+    state.school = value;
+    validateStep4();
+  });
+
+  // Function to update school list based on country
+  function updateSchoolListForCountry(country) {
+    // Find matching country in our database (case-insensitive)
+    const matchedCountry = Object.keys(schoolsByCountry).find(
+      c => c.toLowerCase() === country.toLowerCase()
+    );
+    
+    if (matchedCountry && schoolsByCountry[matchedCountry]) {
+      currentSchoolsList = schoolsByCountry[matchedCountry];
+    } else {
+      // Use default schools if country not found
+      currentSchoolsList = defaultSchools;
+    }
+    
+    // Update the autocomplete data source
+    if (schoolAutocomplete) {
+      schoolAutocomplete.updateData(currentSchoolsList);
+    }
+  }
+
+  // Step 1: Name Input
+  nameInput.addEventListener('input', (e) => {
+    const name = e.target.value.trim();
+    state.name = name;
+    
+    if (name.length > 0) {
+      nameMessage.textContent = `✨ Nice to meet you, ${name}!`;
+      nameMessage.classList.add('show');
+      document.getElementById('step1Next').disabled = false;
+    } else {
+      nameMessage.classList.remove('show');
+      document.getElementById('step1Next').disabled = true;
+    }
+  });
+
+  document.getElementById('step1Next').addEventListener('click', () => {
+    if (state.name) goToStep(2);
+  });
+
+  // Step 3: Country Input
+  countryInput.addEventListener('input', (e) => {
+    const country = e.target.value.trim();
+    state.country = country;
+    validateStep3();
+  });
+
+  function validateStep3() {
+    const canProceed = state.country.length > 0 || state.locationDetected;
+    document.getElementById('step3Next').disabled = !canProceed;
+  }
+
+  document.getElementById('step3Next').addEventListener('click', () => {
+    if (state.country || state.locationDetected) goToStep(4);
+  });
+
+  // Step 4: Purpose Selection
+  document.querySelectorAll('#purposeGrid .selection-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#purposeGrid .selection-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      state.purpose = card.dataset.purpose;
+      document.getElementById('step4Next').disabled = false;
+    });
+  });
+
+  document.getElementById('step4Next').addEventListener('click', () => {
+    if (state.purpose === 'student') {
+      goToStep(5);
+    } else {
+      goToStep(6);
+    }
+  });
+
+  // Step 5: Student Pathway
+  courseInput.addEventListener('input', validateStep5);
+  schoolInput.addEventListener('input', validateStep5);
+
+  function validateStep5() {
+    const canProceed = courseInput.value.trim().length > 0 && schoolInput.value.trim().length > 0;
+    document.getElementById('step5Next').disabled = !canProceed;
+    state.course = courseInput.value.trim();
+    state.school = schoolInput.value.trim();
+  }
+
+  document.getElementById('step5Next').addEventListener('click', () => {
+    if (state.course && state.school) goToStep(6);
+  });
+
+  // Step 6: Level Selection
+  document.querySelectorAll('#levelGrid .selection-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#levelGrid .selection-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      state.level = card.dataset.level;
+      document.getElementById('step6Next').disabled = false;
+    });
+  });
+
+  document.getElementById('step6Back').addEventListener('click', () => {
+    goToStep(state.purpose === 'student' ? 5 : 4);
+  });
+
+  document.getElementById('step6Next').addEventListener('click', () => {
+    if (state.level) completeOnboarding();
+  });
+
+  // Navigation
+  function goToStep(stepNumber) {
+    // Hide current step
+    const currentStepEl = document.querySelector('.step-content.active');
+    if (currentStepEl) {
+      gsap.to(currentStepEl, {
+        opacity: 0,
+        y: -20,
+        duration: 0.3,
+        onComplete: () => {
+          currentStepEl.classList.remove('active');
+          showStep(stepNumber);
+        }
+      });
+    } else {
+      showStep(stepNumber);
+    }
+  }
+
+  function showStep(stepNumber) {
+    state.currentStep = stepNumber;
+    
+    // Show new step
+    const newStepEl = document.getElementById(`step${stepNumber}`);
+    newStepEl.classList.add('active');
+    gsap.fromTo(newStepEl, 
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "back.out(1.7)" }
+    );
+
+    updateProgress();
+    updateStepIndicator();
+  }
+
+  function updateProgress() {
+    const progress = ((state.currentStep - 1) / state.totalSteps) * 100;
+    progressFill.style.width = `${progress}%`;
+  }
+
+  function updateStepIndicator() {
+    const dots = stepIndicator.querySelectorAll('.step-dot');
+    const connectors = stepIndicator.querySelectorAll('.step-connector');
+    
+    dots.forEach((dot, index) => {
+      const stepNum = index + 1;
+      dot.classList.remove('active', 'completed');
+      
+      if (stepNum === state.currentStep) {
+        dot.classList.add('active');
+      } else if (stepNum < state.currentStep) {
+        dot.classList.add('completed');
+      }
+    });
+
+    connectors.forEach((connector, index) => {
+      if (index + 1 < state.currentStep) {
+        connector.classList.add('completed');
+      } else {
+        connector.classList.remove('completed');
+      }
+    });
+  }
+
+  // Complete Onboarding
+  function completeOnboarding() {
+    progressFill.style.width = '100%';
+    
+    // Hide step 6
+    const step6El = document.getElementById('step6');
+    gsap.to(step6El, {
+      opacity: 0,
+      y: -20,
+      duration: 0.3,
+      onComplete: () => {
+        step6El.classList.remove('active');
+        
+        // Show completion
+        const completeEl = document.getElementById('stepComplete');
+        completeEl.classList.add('active');
+        
+        // Update completion text
+        const purposeText = state.purpose.charAt(0).toUpperCase() + state.purpose.slice(1);
+        const levelText = state.level.charAt(0).toUpperCase() + state.level.slice(1);
+        let completionMsg = `Welcome, <strong>${state.name}</strong>! `;
+        completionMsg += `You're learning English as a <strong>${purposeText}</strong>. `;
+        if (state.purpose === 'student') {
+          completionMsg += `Studying <strong>${state.course}</strong> at <strong>${state.school}</strong>. `;
+        }
+        completionMsg += `Your level is set to <strong>${levelText}</strong>. Let's start your journey!`;
+        
+        document.getElementById('completionText').innerHTML = completionMsg;
+        
+        gsap.fromTo(completeEl,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "back.out(1.7)" }
+        );
+
+        // Hide step indicator
+        gsap.to(stepIndicator, { opacity: 0, duration: 0.3 });
+      }
+    });
+
+    // Save to localStorage
+    localStorage.setItem('lexiOnboarding', JSON.stringify(state));
+    localStorage.setItem('lexiOnboardingComplete', 'true');
+  }
+  
+  // View Learning Path
+  document.getElementById('viewPathBtn').addEventListener('click', () => {
+    showLearningPath();
+  });
+  
+  function showLearningPath() {
+    // Hide onboarding, show learning path
+    document.querySelector('.onboarding-shell').style.display = 'none';
+    document.getElementById('learningPathScreen').style.display = 'block';
+    
+    // Generate path steps based on user profile
+    const pathSteps = generateLearningPath();
+    renderLearningPath(pathSteps);
+    
+    // Animate path line
+    setTimeout(() => {
+      const progress = (1 / pathSteps.length) * 100;
+      document.getElementById('pathLineProgress').style.height = `${progress}%`;
+    }, 500);
+    
+    lucide.createIcons();
+  }
+  
+  function generateLearningPath() {
+    const steps = [];
+    const level = state.level;
+    const purpose = state.purpose;
+    
+    // Base steps for all learners
+    steps.push({
+      title: 'Basics 1',
+      desc: 'Greetings & introductions',
+      icon: 'message-circle',
+      status: 'available'
+    });
+    
+    steps.push({
+      title: 'Basics 2',
+      desc: 'Common phrases & expressions',
+      icon: 'book-open',
+      status: 'locked'
+    });
+    
+    // Add purpose-specific steps
+    if (purpose === 'student') {
+      steps.push({
+        title: 'Academic English',
+        desc: 'Essay writing & research terms',
+        icon: 'graduation-cap',
+        status: 'locked'
+      });
+      steps.push({
+        title: 'Presentations',
+        desc: 'Public speaking skills',
+        icon: 'mic',
+        status: 'locked'
+      });
+    } else if (purpose === 'professional') {
+      steps.push({
+        title: 'Business English',
+        desc: 'Emails & meetings',
+        icon: 'briefcase',
+        status: 'locked'
+      });
+      steps.push({
+        title: 'Negotiations',
+        desc: 'Professional communication',
+        icon: 'handshake',
+        status: 'locked'
+      });
+    } else if (purpose === 'traveller') {
+      steps.push({
+        title: 'Travel English',
+        desc: 'Airports, hotels & directions',
+        icon: 'plane',
+        status: 'locked'
+      });
+      steps.push({
+        title: 'Cultural Tips',
+        desc: 'Local customs & etiquette',
+        icon: 'globe',
+        status: 'locked'
+      });
+    }
+    
+    // Add grammar and vocabulary steps
+    steps.push({
+      title: 'Grammar 1',
+      desc: 'Tenses & sentence structure',
+      icon: 'pencil',
+      status: 'locked'
+    });
+    
+    steps.push({
+      title: 'Vocabulary Builder',
+      desc: '500 essential words',
+      icon: 'library',
+      status: 'locked'
+    });
+    
+    // Listening & speaking
+    steps.push({
+      title: 'Listening Practice',
+      desc: 'Real conversations',
+      icon: 'headphones',
+      status: 'locked'
+    });
+    
+    steps.push({
+      title: 'Speaking Practice',
+      desc: 'Pronunciation & fluency',
+      icon: 'mic',
+      status: 'locked'
+    });
+    
+    // Advanced steps based on level
+    if (level === 'intermediate' || level === 'advanced') {
+      steps.push({
+        title: 'Idioms & Slang',
+        desc: 'Natural English expressions',
+        icon: 'smile',
+        status: 'locked'
+      });
+    }
+    
+    if (level === 'advanced') {
+      steps.push({
+        title: 'Debates',
+        desc: 'Critical thinking & argumentation',
+        icon: 'message-square',
+        status: 'locked'
+      });
+      steps.push({
+        title: 'Academic Writing',
+        desc: 'Research papers & analysis',
+        icon: 'file-text',
+        status: 'locked'
+      });
+    }
+    
+    // Final milestone
+    steps.push({
+      title: 'Milestone',
+      desc: 'Level completion test',
+      icon: 'trophy',
+      status: 'locked'
+    });
+    
+    return steps;
+  }
+  
+  function renderLearningPath(steps) {
+    const container = document.getElementById('pathStepsContainer');
+    
+    container.innerHTML = steps.map((step, index) => `
+      <div class="path-step" data-step="${index}" style="opacity:0;transform:translateY(20px);">
+        <div class="path-node ${step.status}">
+          <i data-lucide="${step.icon}"></i>
+        </div>
+        <div class="path-step-info">
+          <div class="path-step-title">${step.title}</div>
+          <div class="path-step-desc">${step.desc}</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Animate steps appearing
+    gsap.to('.path-step', {
+      opacity: 1,
+      y: 0,
+      duration: 0.5,
+      stagger: 0.1,
+      ease: "back.out(1.7)",
+      delay: 0.3
+    });
+    
+    // Add click handlers
+    container.querySelectorAll('.path-step').forEach((stepEl, index) => {
+      stepEl.addEventListener('click', () => {
+        const status = steps[index].status;
+        if (status === 'available') {
+          // Start lesson
+          alert(`Starting: ${steps[index].title}\n\nThis would open the lesson in the full app!`);
+        } else if (status === 'locked') {
+          // Show locked message
+          alert('Complete previous lessons to unlock this one!');
+        }
+      });
+    });
+  }
+
+  // Auto-focus first input
+  nameInput.focus();
+
+  // Autocomplete Function
+  function setupAutocomplete(inputId, dropdownId, dataList, onSelect) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    let currentIndex = -1;
+    let currentData = [...dataList]; // Copy of data that can be updated
+
+    input.addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      currentIndex = -1;
+      
+      if (value.length === 0) {
+        dropdown.classList.remove('show');
+        return;
+      }
+
+      // Filter matches
+      const matches = currentData.filter(item => 
+        item.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 8); // Show max 8 results
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-empty">No matches found</div>';
+        dropdown.classList.add('show');
+        return;
+      }
+
+      // Build dropdown HTML
+      dropdown.innerHTML = matches.map((match, index) => {
+        // Highlight matching text
+        const regex = new RegExp(`(${value})`, 'gi');
+        const highlighted = match.replace(regex, '<span class="match-text">$1</span>');
+        return `<div class="autocomplete-item" data-value="${match}" data-index="${index}">${highlighted}</div>`;
+      }).join('');
+
+      dropdown.classList.add('show');
+
+      // Add click handlers
+      dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const selectedValue = item.dataset.value;
+          input.value = selectedValue;
+          dropdown.classList.remove('show');
+          onSelect(selectedValue);
+        });
+      });
+    });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+      const items = dropdown.querySelectorAll('.autocomplete-item');
+      if (!dropdown.classList.contains('show') || items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentIndex = Math.min(currentIndex + 1, items.length - 1);
+        updateActiveItem(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentIndex = Math.max(currentIndex - 1, 0);
+        updateActiveItem(items);
+      } else if (e.key === 'Enter' && currentIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = items[currentIndex];
+        input.value = selectedItem.dataset.value;
+        dropdown.classList.remove('show');
+        onSelect(selectedItem.dataset.value);
+      } else if (e.key === 'Escape') {
+        dropdown.classList.remove('show');
+      }
+    });
+
+    function updateActiveItem(items) {
+      items.forEach((item, index) => {
+        item.classList.toggle('active', index === currentIndex);
+      });
+      // Scroll active item into view
+      if (items[currentIndex]) {
+        items[currentIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+      }
+    });
+
+    // Close dropdown on focus loss
+    input.addEventListener('blur', () => {
+      setTimeout(() => dropdown.classList.remove('show'), 200);
+    });
+
+    // Return object with update method
+    return {
+      updateData: (newData) => {
+        currentData = [...newData];
+        // Clear input when country changes
+        input.value = '';
+        dropdown.classList.remove('show');
+      }
+    };
+  }
+
+  // Enter key navigation
+  nameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && state.name) goToStep(2);
+  });
+
+  courseInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && state.course && state.school) goToStep(6);
+  });
+
+  schoolInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && state.course && state.school) goToStep(6);
+  });
+</script>
+
+</body>
+</html>

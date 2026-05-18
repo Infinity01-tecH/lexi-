@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexi — Your Learning Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+  :root {
+    --black:#111111;--green:#3B6D11;--green-dark:#27500A;--green-light:#EAF3DE;
+    --green-mid:#C0DD97;--white:#ffffff;--gray:#f6f6f3;--gray-text:#888;--border:#e8e8e4;
+    --flow-line-base:linear-gradient(180deg,rgba(123,188,51,0.12),rgba(95,157,34,0.36),rgba(59,109,17,0.25));
+    --flow-line-active:linear-gradient(180deg,#f4ffe0 0%,#bde777 26%,#7bbc33 72%,#3B6D11 100%);
+    --flow-line-glow:0 0 0 1px rgba(123,188,51,0.08),0 0 16px rgba(123,188,51,0.18);
+    --flow-bubble-bg:radial-gradient(circle at 35% 35%,#f8ffe8 0%,#e0f5ba 38%,#8bcf3c 78%,#3B6D11 100%);
+    --flow-bubble-shadow:0 0 0 6px rgba(123,188,51,0.08),0 0 22px rgba(123,188,51,0.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:var(--black);overflow-x:hidden;min-height:100vh;}
+
+  /* Hero Section */
+  .roadmap-hero{min-height:60vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff 0%,#f5faee 100%);padding:80px 24px 40px;text-align:center;}
+  .hero-content{max-width:800px;}
+  .hero-badge{display:inline-block;background:var(--green-light);color:var(--green-dark);padding:8px 20px;border-radius:999px;font-size:13px;font-weight:600;margin-bottom:20px;letter-spacing:0.04em;text-transform:uppercase;}
+  .hero-title{font-family:'Fraunces',serif;font-size:clamp(40px,6vw,72px);font-weight:700;color:var(--green-dark);line-height:1.1;margin-bottom:16px;}
+  .hero-title em{font-style:italic;color:var(--green);}
+  .hero-subtitle{font-size:18px;color:#5d7150;line-height:1.6;max-width:600px;margin:0 auto;}
+
+  /* Zigzag Path Container */
+  .roadmap-path{position:relative;padding:80px 0;overflow:hidden;}
+  
+  /* Zigzag Line */
+  .zigzag-line{position:absolute;left:50%;top:0;bottom:0;width:4px;background:var(--flow-line-base);transform:translateX(-50%);border-radius:2px;box-shadow:var(--flow-line-glow);}
+  .zigzag-progress{position:absolute;left:50%;top:0;width:4px;height:0;background:var(--flow-line-active);transform:translateX(-50%);border-radius:2px;box-shadow:0 0 14px rgba(123,188,51,0.2);transition:height 0.3s ease;}
+
+  /* Path Steps */
+  .path-row{position:relative;display:flex;align-items:center;margin-bottom:80px;width:100%;}
+  .path-row:nth-child(odd){justify-content:flex-start;}
+  .path-row:nth-child(even){justify-content:flex-end;}
+  .path-row:nth-child(3n){margin-bottom:120px;}
+
+  /* Path Nodes at Edges */
+  .path-node{position:relative;width:calc(33.333% - 40px);margin-left:auto;margin-right:auto;}
+  .path-row:nth-child(odd) .path-node{margin-left:40px;margin-right:auto;}
+  .path-row:nth-child(even) .path-node{margin-left:auto;margin-right:40px;}
+
+  /* Side Info Text */
+  .side-info{position:absolute;width:calc(33.333% - 40px);display:flex;flex-direction:column;justify-content:center;padding:20px;}
+  .path-row:nth-child(odd) .side-info{right:40px;left:auto;text-align:left;}
+  .path-row:nth-child(even) .side-info{left:40px;right:auto;text-align:right;}
+  .side-tip{font-size:13px;color:#5d7150;line-height:1.6;margin-bottom:12px;}
+  .side-tip strong{color:var(--green-dark);display:block;margin-bottom:4px;font-size:14px;}
+  .side-fact{background:var(--green-light);border-left:3px solid var(--green);padding:12px 16px;border-radius:0 8px 8px 0;font-size:12px;color:var(--green-dark);line-height:1.6;}
+  .path-row:nth-child(even) .side-fact{border-left:none;border-right:3px solid var(--green);border-radius:8px 0 0 8px;}
+
+  /* Card Styling */
+  .path-card{background:#fff;border:2px solid var(--green-mid);border-radius:20px;padding:28px;box-shadow:0 12px 32px rgba(59,109,17,0.12);transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;cursor:pointer;}
+  .path-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--green-light),var(--green),var(--green-light));opacity:0;transition:opacity 0.3s ease;}
+  .path-card:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 20px 48px rgba(59,109,17,0.2);border-color:var(--green);}
+  .path-card:hover::before{opacity:1;}
+  .path-card.active{border-color:var(--green);background:var(--green-light);}
+  .path-card.completed{border-color:var(--green-mid);background:linear-gradient(135deg,#fff 0%,var(--green-light) 100%);}
+
+  /* Card Header */
+  .card-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .card-number{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:20px;font-weight:700;flex-shrink:0;}
+  .card-number.locked{background:#e0e0e0;color:#999;}
+  .card-number.available{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(59,109,17,0.3);}
+  .card-number.completed{background:var(--green-mid);color:var(--green-dark);}
+  .card-icon{width:40px;height:40px;color:var(--green);flex-shrink:0;}
+  .card-icon svg{width:100%;height:100%;stroke-width:1.5;}
+
+  /* Card Content */
+  .card-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--green-dark);margin-bottom:8px;line-height:1.2;}
+  .card-desc{font-size:14px;color:#5d7150;line-height:1.6;margin-bottom:16px;}
+
+  /* Card Meta */
+  .card-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .meta-tag{background:var(--green-light);color:var(--green-dark);padding:6px 12px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.03em;}
+
+  /* Progress Bar */
+  .card-progress{height:6px;background:var(--green-light);border-radius:999px;overflow:hidden;margin-bottom:12px;}
+  .card-progress-fill{height:100%;background:linear-gradient(90deg,var(--green-light),var(--green));border-radius:999px;transition:width 0.6s ease;}
+
+  /* Action Button */
+  .card-action{width:100%;height:44px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s ease;font-family:'DM Sans',sans-serif;}
+  .card-action.start{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(59,109,17,0.25);}
+  .card-action.start:hover{background:var(--green-dark);transform:translateY(-2px);box-shadow:0 6px 16px rgba(59,109,17,0.3);}
+  .card-action.locked{background:#e0e0e0;color:#999;cursor:not-allowed;}
+  .card-action.continue{background:var(--green-mid);color:var(--green-dark);}
+  .card-action.continue:hover{background:var(--green);color:#fff;}
+
+  /* Connector Dots */
+  .connector-dot{position:absolute;left:50%;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:var(--flow-bubble-bg);border:2px solid #fff;box-shadow:var(--flow-bubble-shadow);z-index:2;transition:all 0.4s ease;}
+  .connector-dot.active{transform:translateX(-50%) scale(1.3);box-shadow:0 0 0 8px rgba(123,188,51,0.15),0 0 24px rgba(123,188,51,0.4);}
+
+  /* Responsive */
+  @media(max-width:1024px){
+    .path-node{width:calc(50% - 40px);}
+  }
+
+  @media(max-width:768px){
+    .zigzag-line{left:20px;}
+    .path-row:nth-child(odd) .path-node,
+    .path-row:nth-child(even) .path-node{
+      width:calc(100% - 60px);
+      margin-left:60px;
+      margin-right:20px;
+    }
+    .path-card{padding:20px;}
+    .card-title{font-size:18px;}
+  }
+
+  /* Animations */
+  @keyframes pulse{
+    0%,100%{box-shadow:0 4px 12px rgba(59,109,17,0.3);}
+    50%{box-shadow:0 4px 20px rgba(59,109,17,0.5),0 0 0 8px rgba(59,109,17,0.1);}
+  }
+  .card-number.available{animation:pulse 2s infinite;}
+</style>
+</head>
+<body>
+
+<!-- Hero Section -->
+<section class="roadmap-hero">
+  <div class="hero-content">
+    <div class="hero-badge">Your Journey</div>
+    <h1 class="hero-title">Your English <em>Learning Path</em></h1>
+    <p class="hero-subtitle">Follow the roadmap step by step. Each box is a milestone in your journey to English fluency.</p>
+  </div>
+</section>
+
+<!-- Zigzag Learning Path -->
+<section class="roadmap-path" id="roadmapPath">
+  <div class="zigzag-line"></div>
+  <div class="zigzag-progress" id="zigzagProgress"></div>
+  
+  <!-- Steps will be generated by JavaScript -->
+  <div id="pathContainer"></div>
+</section>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Learning Path Data
+  const pathData = [
+    {
+      step: 1,
+      title: 'Basics 1',
+      desc: 'Master greetings, introductions, and essential phrases to start conversations confidently.',
+      icon: 'message-circle',
+      status: 'available',
+      progress: 0,
+      tags: ['Beginner', '15 min'],
+      action: 'Start Lesson',
+      sideTip: 'Start your journey',
+      sideFact: 'You\'ll learn 20+ essential greetings used in daily conversations worldwide.'
+    },
+    {
+      step: 2,
+      title: 'Basics 2',
+      desc: 'Learn common expressions, daily routines, and build your foundation vocabulary.',
+      icon: 'book-open',
+      status: 'locked',
+      progress: 0,
+      tags: ['Beginner', '20 min'],
+      action: 'Locked',
+      sideTip: 'Build your foundation',
+      sideFact: 'Daily practice of just 15 minutes can help you remember 90% of new words.'
+    },
+    {
+      step: 3,
+      title: 'Grammar Foundation',
+      desc: 'Understand tenses, sentence structure, and basic grammar rules that power fluent speech.',
+      icon: 'pencil',
+      status: 'locked',
+      progress: 0,
+      tags: ['Grammar', '25 min'],
+      action: 'Locked',
+      sideTip: 'Grammar made simple',
+      sideFact: 'English has only 12 tenses, but you only need 5 for 80% of conversations.'
+    },
+    {
+      step: 4,
+      title: 'Vocabulary Builder',
+      desc: 'Expand your word bank with 500 essential words organized by theme and usage.',
+      icon: 'library',
+      status: 'locked',
+      progress: 0,
+      tags: ['Vocabulary', '30 min'],
+      action: 'Locked',
+      sideTip: 'Word by word',
+      sideFact: 'Knowing 1,000 words lets you understand 85% of everyday English.'
+    },
+    {
+      step: 5,
+      title: 'Listening Practice',
+      desc: 'Train your ear with real conversations, podcasts, and native speaker audio.',
+      icon: 'headphones',
+      status: 'locked',
+      progress: 0,
+      tags: ['Listening', '20 min'],
+      action: 'Locked',
+      sideTip: 'Train your ears',
+      sideFact: 'Listening to English 30 mins/day improves comprehension by 40% in 2 weeks.'
+    },
+    {
+      step: 6,
+      title: 'Speaking Practice',
+      desc: 'Practice pronunciation, fluency, and confidence with guided speaking exercises.',
+      icon: 'mic',
+      status: 'locked',
+      progress: 0,
+      tags: ['Speaking', '25 min'],
+      action: 'Locked',
+      sideTip: 'Find your voice',
+      sideFact: 'Speaking out loud activates different parts of your brain than reading.'
+    },
+    {
+      step: 7,
+      title: 'Real Conversations',
+      desc: 'Apply everything you\'ve learned in simulated real-world scenarios and dialogues.',
+      icon: 'users',
+      status: 'locked',
+      progress: 0,
+      tags: ['Practice', '30 min'],
+      action: 'Locked',
+      sideTip: 'Put it together',
+      sideFact: 'Real conversations teach you natural rhythm and body language cues.'
+    },
+    {
+      step: 8,
+      title: 'Video Lessons',
+      desc: 'Watch engaging video lessons with native speakers, interactive subtitles, and real-life contexts.',
+      icon: 'play-circle',
+      status: 'locked',
+      progress: 0,
+      tags: ['Visual', '25 min'],
+      action: 'Locked',
+      sideTip: 'Learn visually',
+      sideFact: 'Video lessons combine audio + visual learning for 2x better retention.'
+    },
+    {
+      step: 9,
+      title: 'Idioms & Slang',
+      desc: 'Sound natural with common idioms, slang, and expressions used by native speakers.',
+      icon: 'smile',
+      status: 'locked',
+      progress: 0,
+      tags: ['Intermediate', '20 min'],
+      action: 'Locked',
+      sideTip: 'Sound like a native',
+      sideFact: 'Native speakers use 2-3 idioms in every 10 minutes of conversation.'
+    },
+    {
+      step: 10,
+      title: 'Level Milestone',
+      desc: 'Test your skills and prove you\'re ready to advance to the next level!',
+      icon: 'trophy',
+      status: 'locked',
+      progress: 0,
+      tags: ['Assessment', '45 min'],
+      action: 'Locked',
+      sideTip: 'Show your progress',
+      sideFact: 'Completing this milestone unlocks advanced content and certificate.'
+    }
+  ];
+
+  // Icon SVGs
+  const icons = {
+    'message-circle': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+    'book-open': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    'pencil': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>',
+    'library': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    'headphones': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+    'mic': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+    'users': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    'play-circle': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>',
+    'smile': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+    'trophy': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>'
+  };
+
+  // Generate Path
+  const container = document.getElementById('pathContainer');
+  
+  pathData.forEach((item, index) => {
+    const row = document.createElement('div');
+    row.className = 'path-row';
+    row.style.opacity = '0';
+    row.style.transform = 'translateY(40px)';
+    
+    const actionClass = item.status === 'available' ? 'start' : 
+                        item.status === 'completed' ? 'continue' : 'locked';
+    
+    row.innerHTML = `
+      <div class="path-node">
+        <div class="path-card ${item.status}" data-step="${item.step}">
+          <div class="card-header">
+            <div class="card-number ${item.status}">${item.step}</div>
+            <div class="card-icon">${icons[item.icon]}</div>
+          </div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-desc">${item.desc}</div>
+          <div class="card-meta">
+            ${item.tags.map(tag => `<span class="meta-tag">${tag}</span>`).join('')}
+          </div>
+          <div class="card-progress">
+            <div class="card-progress-fill" style="width:${item.progress}%"></div>
+          </div>
+          <button class="card-action ${actionClass}" ${item.status === 'locked' ? 'disabled' : ''}>${item.action}</button>
+        </div>
+      </div>
+      <div class="connector-dot" style="top:50%;"></div>
+      <div class="side-info">
+        <div class="side-tip"><strong>${item.sideTip}</strong></div>
+        <div class="side-fact">${item.sideFact}</div>
+      </div>
+    `;
+    
+    container.appendChild(row);
+  });
+
+  // Animate on Scroll
+  const pathSection = document.getElementById('roadmapPath');
+  const progressBar = document.getElementById('zigzagProgress');
+  const pathRows = document.querySelectorAll('.path-row');
+  const connectorDots = document.querySelectorAll('.connector-dot');
+  
+  // Create ScrollTrigger for the progress line
+  ScrollTrigger.create({
+    trigger: pathSection,
+    start: 'top 50%',
+    end: 'bottom 50%',
+    scrub: 0.5,
+    onUpdate: (self) => {
+      // Update progress line height based on scroll
+      const progress = self.progress * 100;
+      progressBar.style.height = `${progress}%`;
+      
+      // Activate connector dots as we pass them
+      connectorDots.forEach((dot, index) => {
+        const dotPosition = (index / (connectorDots.length - 1)) * 100;
+        if (progress >= dotPosition - 5) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.remove('active');
+        }
+      });
+    }
+  });
+  
+  // Animate each row appearing
+  pathRows.forEach((row, i) => {
+    gsap.to(row, {
+      scrollTrigger: {
+        trigger: row,
+        start: 'top 85%',
+        toggleActions: 'play none none none'
+      },
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      ease: 'power3.out',
+      delay: i * 0.05
+    });
+  });
+
+  // Card Interactions
+  document.querySelectorAll('.path-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('card-action') && e.target.disabled) return;
+      
+      const step = parseInt(card.dataset.step);
+      const status = pathData[step - 1].status;
+      
+      if (status === 'available') {
+        alert(`🎓 Starting: ${pathData[step - 1].title}\n\nThis would open the lesson in the full app!`);
+      } else if (status === 'locked') {
+        // Shake animation
+        gsap.to(card, {
+          x: [-10, 10, -10, 10, 0],
+          duration: 0.4,
+          ease: 'power2.out'
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
